@@ -1,0 +1,57 @@
+<header class="site-header">
+  <div class="container">
+    <a href="/" class="brand">
+      <%- include('brand_mark') -%>
+      <%- include('brand_wordmark') -%>
+    </a>
+
+    <nav class="nav-links">
+      <a href="/" class="<%= currentPath === '/' ? 'active' : '' %>">Главная</a>
+      <a href="/events" class="<%= currentPath.startsWith('/events') ? 'active' : '' %>">Мероприятия</a>
+      <a href="/academies" class="<%= currentPath.startsWith('/academies') ? 'active' : '' %>">Академии</a>
+      <a href="/manuals" class="<%= currentPath.startsWith('/manuals') ? 'active' : '' %>">Мануалы</a>
+      <a href="/leaderboard" class="<%= currentPath.startsWith('/leaderboard') ? 'active' : '' %>">Таблица лидеров</a>
+      <% if (currentUser && currentUser.role === 'admin') { %>
+        <a href="/admin/users" class="<%= currentPath.startsWith('/admin') ? 'active' : '' %>">Админ</a>
+      <% } %>
+    </nav>
+
+    <div class="nav-user">
+      <% if (currentUser) { %>
+        <a href="/profile/<%= currentUser.id %>" class="chip">
+          <span class="avatar">
+            <% if (currentUser.avatarFile) { %>
+              <img src="/uploads/avatars/<%= currentUser.avatarFile %>" alt="">
+            <% } else { %>
+              <%= currentUser.fullName.trim().charAt(0).toUpperCase() %>
+            <% } %>
+          </span>
+          <span>
+            <%= currentUser.fullName %>
+            <% if (currentUser.role === 'admin') { %><span class="role-admin"> · админ</span><% } %>
+          </span>
+          <span class="points"><%= domain.userPoints(currentUser.id) %> б.</span>
+        </a>
+        <form action="/logout" method="POST">
+          <button type="submit" class="btn btn-small">Выйти</button>
+        </form>
+      <% } else { %>
+        <a href="/login" class="btn btn-small">Войти</a>
+        <a href="/register" class="btn btn-primary btn-small">Регистрация</a>
+      <% } %>
+    </div>
+  </div>
+</header>
+<main>
+<div class="container" style="padding-top: 32px; padding-bottom: 12px;">
+  <% if (successMessages && successMessages.length) { %>
+    <div class="flash-stack">
+      <% successMessages.forEach(function(m){ %><div class="flash flash-success">✓ <%= m %></div><% }); %>
+    </div>
+  <% } %>
+  <% if (errorMessages && errorMessages.length) { %>
+    <div class="flash-stack">
+      <% errorMessages.forEach(function(m){ %><div class="flash flash-error">⚠ <%= m %></div><% }); %>
+    </div>
+  <% } %>
+</div>

@@ -1,0 +1,48 @@
+<%- include('../partials/head') -%>
+<%- include('../partials/header') -%>
+
+<div class="container">
+  <div class="eyebrow">Каталог площадок</div>
+  <h1 style="font-size:32px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);">Площадки</h1>
+  <%- include('../partials/admin_nav') -%>
+
+  <div class="layout-2col">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Площадка</th><th>Адрес</th><th>Мероприятий</th><th></th></tr></thead>
+        <tbody>
+          <% venues.forEach(function(row){ %>
+            <tr>
+              <td style="font-weight:600;"><%= row.venue.name %></td>
+              <td class="text-faint"><%= row.venue.address || '—' %></td>
+              <td class="text-faint"><%= row.usedByEvents %></td>
+              <td>
+                <form action="/admin/venues/<%= row.venue.id %>?_method=DELETE" method="POST" data-confirm="Удалить площадку «<%= row.venue.name %>»?">
+                  <button type="submit" class="btn btn-small btn-danger" <%= row.usedByEvents > 0 ? 'disabled title="Есть привязанные мероприятия"' : '' %>>Удалить</button>
+                </form>
+              </td>
+            </tr>
+          <% }); %>
+          <% if (!venues.length) { %><tr><td colspan="4" class="text-faint" style="text-align:center; padding:24px;">Каталог пуст.</td></tr><% } %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Добавить площадку</div>
+      <form action="/admin/venues" method="POST" class="stack">
+        <div class="field">
+          <label for="name">Название</label>
+          <input type="text" id="name" name="name" required>
+        </div>
+        <div class="field">
+          <label for="address">Адрес</label>
+          <input type="text" id="address" name="address">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Добавить</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') -%>

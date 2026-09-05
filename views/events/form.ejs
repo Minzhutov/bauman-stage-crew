@@ -1,0 +1,79 @@
+<%- include('../partials/head') -%>
+<%- include('../partials/header') -%>
+
+<div class="container" style="max-width:760px;">
+  <div class="eyebrow">Панель администратора</div>
+  <h1 style="font-size:28px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);"><%= title %></h1>
+
+  <form action="<%= event ? '/events/' + event.id + '?_method=PUT' : '/events' %>" method="POST" class="stack panel">
+    <div class="field">
+      <label for="title">Название мероприятия</label>
+      <input type="text" id="title" name="title" value="<%= form.title || '' %>" required>
+    </div>
+
+    <div class="field">
+      <label for="description">Техническое задание</label>
+      <textarea id="description" name="description" rows="5" placeholder="Схема сцены, требования к звуку/свету/видео, тайминг монтажа и демонтажа…"><%= form.description || '' %></textarea>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="venueId">Место проведения</label>
+        <select id="venueId" name="venueId" required>
+          <option value="" disabled <%= !form.venueId ? 'selected' : '' %>>Выберите площадку</option>
+          <% venues.forEach(function(v){ %>
+            <option value="<%= v.id %>" <%= Number(form.venueId) === v.id ? 'selected' : '' %>><%= v.name %></option>
+          <% }); %>
+        </select>
+        <p class="hint">Список площадок расширяется в разделе «Админ → Площадки».</p>
+      </div>
+      <% if (event) { %>
+      <div class="field">
+        <label for="status">Статус</label>
+        <select id="status" name="status">
+          <option value="planned" <%= form.status === 'planned' ? 'selected' : '' %>>Запланировано</option>
+          <option value="completed" <%= form.status === 'completed' ? 'selected' : '' %>>Завершено</option>
+          <option value="cancelled" <%= form.status === 'cancelled' ? 'selected' : '' %>>Отменено</option>
+        </select>
+      </div>
+      <% } %>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="startsAt">Начало</label>
+        <input type="datetime-local" id="startsAt" name="startsAt" value="<%= h.toInputValue(form.startsAt) %>" required>
+      </div>
+      <div class="field">
+        <label for="endsAt">Окончание</label>
+        <input type="datetime-local" id="endsAt" name="endsAt" value="<%= h.toInputValue(form.endsAt) %>" required>
+      </div>
+    </div>
+
+    <fieldset>
+      <legend>Требуемые специалисты</legend>
+      <p class="hint" style="margin-top:-6px; margin-bottom:14px;">Укажите количество человек по каждой должности (0 — не требуется). Каталог должностей расширяется в разделе «Админ → Должности».</p>
+      <div class="requirement-grid">
+        <% positions.forEach(function(p){ %>
+          <div class="requirement-item">
+            <div>
+              <div class="rname"><%= p.name %></div>
+              <% if (p.description) { %><div class="rdesc"><%= p.description %></div><% } %>
+            </div>
+            <input type="number" min="0" max="99" name="positions_<%= p.id %>" value="<%= requiredMap[p.id] || 0 %>">
+          </div>
+        <% }); %>
+        <% if (!positions.length) { %>
+          <p class="text-faint">Каталог должностей пуст. Добавьте должности в разделе «Админ → Должности».</p>
+        <% } %>
+      </div>
+    </fieldset>
+
+    <div class="btn-group">
+      <button type="submit" class="btn btn-primary"><%= event ? 'Сохранить изменения' : 'Опубликовать мероприятие' %></button>
+      <a href="<%= event ? '/events/' + event.id : '/events' %>" class="btn">Отмена</a>
+    </div>
+  </form>
+</div>
+
+<%- include('../partials/footer') -%>

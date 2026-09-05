@@ -1,0 +1,53 @@
+<%- include('../partials/head') -%>
+<%- include('../partials/header') -%>
+
+<div class="container">
+  <div class="eyebrow">Рейтинг команды</div>
+  <h1 style="font-size:32px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);">Таблица лидеров</h1>
+  <p>Сводный рейтинг по баллам, начисленным администраторами за мероприятия и активность.</p>
+
+  <% if (rows.length >= 3) { %>
+    <div class="card-grid" style="grid-template-columns: repeat(3,1fr); margin: 28px 0;">
+      <% [1,0,2].forEach(function(i){ var row = rows[i]; %>
+        <div class="card" style="text-align:center; <%= i===0 ? 'border-color:rgba(139,92,246,.6); transform:translateY(-8px);' : '' %>">
+          <div style="font-size:28px;"><%= i===0 ? '🥇' : (i===1 ? '🥈' : '🥉') %></div>
+          <h3 style="margin:10px 0 2px;"><%= row.user.fullName %></h3>
+          <div class="text-faint" style="font-size:12px; margin-bottom:10px;"><%= row.user.role === 'admin' ? 'Администратор' : 'Участник команды' %></div>
+          <div class="mono" style="font-size:22px; color:var(--amber); font-weight:700;"><%= row.points %> б.</div>
+        </div>
+      <% }); %>
+    </div>
+  <% } %>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Участник</th>
+          <th>Роль</th>
+          <th>Ачивки</th>
+          <th>Смен закрыто</th>
+          <th>Баллы</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% rows.forEach(function(row, i){ %>
+          <tr class="<%= i===0 ? 'rank-1' : i===1 ? 'rank-2' : i===2 ? 'rank-3' : '' %>">
+            <td class="rank-cell"><%= i + 1 %></td>
+            <td><a href="/profile/<%= row.user.id %>" style="color:var(--text); font-weight:600;"><%= row.user.fullName %></a></td>
+            <td><span class="<%= row.user.role === 'admin' ? 'chip-role' : 'chip-user' %>"><%= row.user.role === 'admin' ? 'Админ' : 'Участник' %></span></td>
+            <td><%= row.achievementsCount %></td>
+            <td><%= row.completedEvents %></td>
+            <td class="points-cell"><%= row.points %></td>
+          </tr>
+        <% }); %>
+        <% if (!rows.length) { %>
+          <tr><td colspan="6" class="text-faint" style="text-align:center; padding:30px;">Пока нет участников.</td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('../partials/footer') -%>

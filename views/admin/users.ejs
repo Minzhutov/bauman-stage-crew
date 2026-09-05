@@ -1,0 +1,42 @@
+<%- include('../partials/head') -%>
+<%- include('../partials/header') -%>
+
+<div class="container">
+  <div class="eyebrow">Управление командой</div>
+  <h1 style="font-size:32px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);">Пользователи</h1>
+  <%- include('../partials/admin_nav') -%>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Имя</th><th>Группа</th><th>Email</th><th>Роль</th><th>Баллы</th><th>Действия</th></tr>
+      </thead>
+      <tbody>
+        <% users.forEach(function(row){ %>
+          <tr>
+            <td><a href="/profile/<%= row.user.id %>" style="color:var(--text); font-weight:600;"><%= row.user.fullName %></a></td>
+            <td class="text-faint"><%= row.user.studyGroup || '—' %></td>
+            <td class="text-faint"><%= row.user.email %></td>
+            <td><span class="<%= row.user.role === 'admin' ? 'chip-role' : 'chip-user' %>"><%= row.user.role === 'admin' ? 'Админ' : 'Участник' %></span></td>
+            <td class="points-cell"><%= row.points %></td>
+            <td>
+              <div class="btn-group">
+                <form action="/admin/users/<%= row.user.id %>/role?_method=PUT" method="POST">
+                  <input type="hidden" name="role" value="<%= row.user.role === 'admin' ? 'user' : 'admin' %>">
+                  <button type="submit" class="btn btn-small" <%= row.user.id === currentUser.id ? 'disabled' : '' %>>
+                    <%= row.user.role === 'admin' ? 'Снять права' : 'Сделать админом' %>
+                  </button>
+                </form>
+                <form action="/admin/users/<%= row.user.id %>?_method=DELETE" method="POST" data-confirm="Удалить пользователя <%= row.user.fullName %>? Это действие необратимо.">
+                  <button type="submit" class="btn btn-small btn-danger" <%= row.user.id === currentUser.id ? 'disabled' : '' %>>Удалить</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<%- include('../partials/footer') -%>

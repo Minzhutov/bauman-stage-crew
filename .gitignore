@@ -1,0 +1,14 @@
+node_modules/
+data/db.json
+public/uploads/manuals/*
+!public/uploads/manuals/.gitkeep
+public/uploads/achievements/*
+!public/uploads/achievements/.gitkeep
+public/uploads/avatars/*
+!public/uploads/avatars/.gitkeep
+.env
+*.log
+.DS_Store
+logs/*
+!logs/.gitkeep
+backups/

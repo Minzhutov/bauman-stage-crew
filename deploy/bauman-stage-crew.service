@@ -1,0 +1,30 @@
+# Юнит systemd — альтернатива pm2, если на сервере предпочитают штатный
+# init-менеджер. Отредактируйте User/WorkingDirectory/ExecStart под свой
+# сервер, затем:
+#
+#   sudo cp deploy/bauman-stage-crew.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now bauman-stage-crew
+#   sudo systemctl status bauman-stage-crew
+#   journalctl -u bauman-stage-crew -f
+#
+# .env рядом с проектом подхватывается самим приложением (dotenv) — сюда
+# секреты дублировать не нужно.
+
+[Unit]
+Description=Bauman Stage Crew
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/bauman-stage-crew
+ExecStart=/usr/bin/node server.js
+Environment=NODE_ENV=production
+Restart=on-failure
+RestartSec=3
+# Даём процессу время на server.close() из graceful shutdown в server.js
+TimeoutStopSec=15
+
+[Install]
+WantedBy=multi-user.target

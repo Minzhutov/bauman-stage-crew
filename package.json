@@ -1,0 +1,29 @@
+{
+  "name": "bauman-stage-crew",
+  "version": "1.0.0",
+  "description": "Внутренний портал команды BaumanStageCrew: мероприятия, академии, мануалы, таблица лидеров.",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "backup": "./scripts/backup.sh",
+    "pm2:start": "pm2 start ecosystem.config.js --env production",
+    "pm2:restart": "pm2 restart bauman-stage-crew",
+    "pm2:logs": "pm2 logs bauman-stage-crew"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "connect-flash": "^0.1.1",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "express-session": "^1.18.0",
+    "method-override": "^3.0.0",
+    "multer": "^2.3.0",
+    "nodemailer": "^10.0.0"
+  }
+}

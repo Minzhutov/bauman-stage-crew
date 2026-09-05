@@ -1,0 +1,135 @@
+<%- include('partials/head') -%>
+<%- include('partials/header') -%>
+
+<section class="hero">
+  <div class="container">
+    <div class="eyebrow eyebrow--plain" style="justify-content:center;">Там, где начинается сцена</div>
+    <div class="hero-brand"><%- include('partials/brand_mark', { sizeClass: 'brand-mark-lg' }) -%></div>
+    <div class="hero-wordmark"><%- include('partials/brand_wordmark', { sizeClass: 'brand-wordmark-lg' }) -%></div>
+    <p class="lede">Единая консоль команды концертного продакшена: мероприятия, обучение, документация и рейтинг команды — в одном месте.</p>
+    <div class="hero-actions">
+      <a href="/events" class="btn btn-primary">Смотреть мероприятия</a>
+      <% if (!currentUser) { %>
+        <a href="/register" class="btn">Присоединиться к команде</a>
+      <% } else { %>
+        <a href="/profile/<%= currentUser.id %>" class="btn">Мой профиль</a>
+      <% } %>
+    </div>
+
+    <div class="stat-strip">
+      <div class="stat-tile"><div class="value"><%= stats.events %></div><div class="label">Мероприятий</div></div>
+      <div class="stat-tile"><div class="value"><%= stats.crew %></div><div class="label">Участников команды</div></div>
+      <div class="stat-tile"><div class="value"><%= stats.academies %></div><div class="label">Лекций в Академии</div></div>
+      <div class="stat-tile"><div class="value"><%= stats.manuals %></div><div class="label">Мануалов</div></div>
+    </div>
+  </div>
+</section>
+
+<% if (currentUser && personal) { %>
+<section class="section" style="padding-top:0;">
+  <div class="container">
+    <div class="panel">
+      <div class="panel-title">Ваш статус, <%= currentUser.fullName.split(' ')[0] %></div>
+      <div class="layout-2col">
+        <div>
+          <p class="text-dim" style="margin-bottom:16px;">
+            Баллы: <strong class="mono" style="color:var(--amber);"><%= personal.points %></strong> ·
+            Ачивки: <strong><%= personal.achievements.length %></strong> ·
+            Должности: <strong><%= personal.positions.length %></strong>
+          </p>
+          <div class="pill-group">
+            <% personal.positions.forEach(function(p){ %><span class="pill"><%= p.name %></span><% }); %>
+            <% if (!personal.positions.length) { %><span class="text-faint">Должности пока не назначены — обратитесь к администратору.</span><% } %>
+          </div>
+        </div>
+        <div>
+          <% if (personal.nextEvent) { %>
+            <div class="text-faint" style="font-size:11px; text-transform:uppercase; letter-spacing:.08em; margin-bottom:6px;">Ближайший выход</div>
+            <a href="/events/<%= personal.nextEvent.event.id %>" style="color:var(--violet-bright); font-weight:700;"><%= personal.nextEvent.event.title %></a>
+            <p class="mono text-dim" style="margin-top:4px;"><%= h.formatDateTime(personal.nextEvent.event.startsAt) %></p>
+          <% } else { %>
+            <p class="text-faint">Нет предстоящих смен. Загляните в раздел «Мероприятия».</p>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<% } %>
+
+<section class="section" style="padding-top:0;">
+  <div class="container">
+    <div class="layout-2col">
+      <div>
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Расписание</div>
+            <h2>Ближайшие мероприятия</h2>
+          </div>
+          <a href="/events" class="btn btn-small">Все мероприятия →</a>
+        </div>
+        <% if (!upcomingEvents.length) { %>
+          <div class="empty"><div class="glyph">🎪</div>Пока нет запланированных мероприятий.</div>
+        <% } else { %>
+          <div class="card-grid">
+            <% upcomingEvents.forEach(function(event){ %>
+              <a href="/events/<%= event.id %>" class="card card-link">
+                <div class="card-top">
+                  <h3><%= event.title %></h3>
+                  <span class="badge badge-<%= event.status %>"><%= event.status === 'planned' ? 'план' : (event.status === 'completed' ? 'завершено' : 'отменено') %></span>
+                </div>
+                <div class="meta">
+                  <span>📍 <%= event.venue ? event.venue.name : '—' %></span>
+                  <span>🕒 <%= h.formatDateTime(event.startsAt) %></span>
+                </div>
+                <div class="card-foot">
+                  <span class="text-faint" style="font-size:12px;">Нужно специалистов: <%= domain.totalNeeded(event) %></span>
+                  <span class="text-faint" style="font-size:12px;">Набрано: <%= domain.totalFilled(event) %></span>
+                </div>
+              </a>
+            <% }); %>
+          </div>
+        <% } %>
+      </div>
+
+      <div>
+        <div class="section-head">
+          <div>
+            <div class="eyebrow">Академия</div>
+            <h2>Лекции</h2>
+          </div>
+        </div>
+        <% if (!upcomingAcademies.length) { %>
+          <div class="empty"><div class="glyph">🎓</div>Лекций не запланировано.</div>
+        <% } else { %>
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <% upcomingAcademies.forEach(function(a){ %>
+              <a href="/academies/<%= a.id %>" class="card card-link" style="padding:16px;">
+                <h3 style="font-size:15px;"><%= a.title %></h3>
+                <div class="meta">
+                  <span>🏫 <%= a.room %></span>
+                  <span>🕒 <%= h.formatDateTime(a.startsAt) %></span>
+                </div>
+              </a>
+            <% }); %>
+          </div>
+        <% } %>
+
+        <div class="panel" style="margin-top:18px;">
+          <div class="panel-title">Топ команды <a href="/leaderboard" style="text-transform:none; letter-spacing:0; font-weight:600;">Вся таблица →</a></div>
+          <% topLeaders.forEach(function(row, i){ %>
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; <%= i < topLeaders.length - 1 ? 'border-bottom:1px solid var(--border-soft);' : '' %>">
+              <span style="display:flex; align-items:center; gap:10px;">
+                <span class="mono text-faint"><%= i + 1 %></span>
+                <span><%= row.user.fullName %></span>
+              </span>
+              <span class="mono" style="color:var(--amber);"><%= row.points %></span>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<%- include('partials/footer') -%>

@@ -1,0 +1,48 @@
+<%- include('../partials/head') -%>
+<%- include('../partials/header') -%>
+
+<div class="container" style="max-width:640px;">
+  <div class="eyebrow">Панель администратора</div>
+  <h1 style="font-size:28px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);"><%= title %></h1>
+
+  <form action="<%= academy ? '/academies/' + academy.id + '?_method=PUT' : '/academies' %>" method="POST" class="stack panel">
+    <div class="field">
+      <label for="title">Тема лекции</label>
+      <input type="text" id="title" name="title" value="<%= form.title || '' %>" required>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="topic">Направление</label>
+        <input type="text" id="topic" name="topic" value="<%= form.topic || '' %>" placeholder="Звук, свет, безопасность…">
+      </div>
+      <div class="field">
+        <label for="speaker">Спикер</label>
+        <input type="text" id="speaker" name="speaker" value="<%= form.speaker || '' %>">
+      </div>
+    </div>
+    <div class="field">
+      <label for="description">Описание</label>
+      <textarea id="description" name="description" rows="4"><%= form.description || '' %></textarea>
+    </div>
+    <div class="field">
+      <label for="room">Аудитория</label>
+      <input type="text" id="room" name="room" value="<%= form.room || '' %>" required>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="startsAt">Начало</label>
+        <input type="datetime-local" id="startsAt" name="startsAt" value="<%= h.toInputValue(form.startsAt) %>" required>
+      </div>
+      <div class="field">
+        <label for="endsAt">Окончание</label>
+        <input type="datetime-local" id="endsAt" name="endsAt" value="<%= h.toInputValue(form.endsAt) %>" required>
+      </div>
+    </div>
+    <div class="btn-group">
+      <button type="submit" class="btn btn-primary"><%= academy ? 'Сохранить изменения' : 'Опубликовать' %></button>
+      <a href="<%= academy ? '/academies/' + academy.id : '/academies' %>" class="btn">Отмена</a>
+    </div>
+  </form>
+</div>
+
+<%- include('../partials/footer') -%>

@@ -1,0 +1,51 @@
+<%- include('../partials/head') -%>
+<%- include('../partials/header') -%>
+
+<div class="container">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Проекты</div>
+      <h1 style="font-size:32px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);">Мероприятия</h1>
+      <p>Список событий, техническое задание и требуемые специалисты по каждой площадке.</p>
+    </div>
+    <% if (currentUser && currentUser.role === 'admin') { %>
+      <a href="/events/new" class="btn btn-primary">+ Новое мероприятие</a>
+    <% } %>
+  </div>
+
+  <div class="btn-group" style="margin-bottom:24px;">
+    <a href="/events" class="btn btn-small <%= statusFilter === '' ? 'btn-primary' : '' %>">Все</a>
+    <a href="/events?status=planned" class="btn btn-small <%= statusFilter === 'planned' ? 'btn-primary' : '' %>">Запланированы</a>
+    <a href="/events?status=completed" class="btn btn-small <%= statusFilter === 'completed' ? 'btn-primary' : '' %>">Завершены</a>
+    <a href="/events?status=cancelled" class="btn btn-small <%= statusFilter === 'cancelled' ? 'btn-primary' : '' %>">Отменены</a>
+  </div>
+
+  <% if (!events.length) { %>
+    <div class="empty"><div class="glyph">🎪</div>Мероприятий не найдено.</div>
+  <% } else { %>
+    <div class="card-grid">
+      <% events.forEach(function(event){ %>
+        <a href="/events/<%= event.id %>" class="card card-link">
+          <div class="card-top">
+            <h3><%= event.title %></h3>
+            <span class="badge badge-<%= event.status %>"><%= event.status === 'planned' ? 'план' : (event.status === 'completed' ? 'завершено' : 'отменено') %></span>
+          </div>
+          <div class="meta">
+            <span>📍 <%= event.venue ? event.venue.name : '—' %></span>
+            <span>🕒 <%= h.formatDateTime(event.startsAt) %></span>
+          </div>
+          <div class="pill-group">
+            <% event.requirements.slice(0,4).forEach(function(r){ %>
+              <span class="pill"><%= r.position ? r.position.name : '—' %> <span class="mono text-faint"><%= r.approvedCount %>/<%= r.needed %></span></span>
+            <% }); %>
+          </div>
+          <div class="card-foot">
+            <span class="text-faint" style="font-size:12px;">Набрано <%= domain.totalFilled(event) %> из <%= domain.totalNeeded(event) %></span>
+          </div>
+        </a>
+      <% }); %>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') -%>

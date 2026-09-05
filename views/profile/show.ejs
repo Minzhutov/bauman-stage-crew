@@ -1,0 +1,226 @@
+<%- include('../partials/head') -%>
+<%- include('../partials/header') -%>
+
+<div class="container">
+  <div class="profile-hero">
+    <div class="profile-avatar-wrap">
+      <div class="profile-avatar">
+        <% if (profile.user.avatarFile) { %>
+          <img src="/uploads/avatars/<%= profile.user.avatarFile %>" alt="">
+        <% } else { %>
+          <%= profile.user.fullName.trim().charAt(0).toUpperCase() %>
+        <% } %>
+      </div>
+      <% if (isOwner || isAdmin) { %>
+        <div class="avatar-actions">
+          <form action="/profile/<%= profile.user.id %>/avatar" method="POST" enctype="multipart/form-data">
+            <label class="avatar-action-btn" for="avatarInput">Изменить фото</label>
+            <input type="file" id="avatarInput" name="avatar" accept=".png,.jpg,.jpeg,.webp,.gif" data-autosubmit hidden>
+          </form>
+          <% if (profile.user.avatarFile) { %>
+            <form action="/profile/<%= profile.user.id %>/avatar?_method=DELETE" method="POST" data-confirm="Удалить фото профиля?">
+              <button type="submit" class="avatar-action-btn avatar-action-danger">Удалить</button>
+            </form>
+          <% } %>
+        </div>
+      <% } %>
+    </div>
+    <div>
+      <h1 style="font-size:28px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text); margin-bottom:4px;"><%= profile.user.fullName %></h1>
+      <div class="pill-group">
+        <span class="<%= profile.user.role === 'admin' ? 'chip-role' : 'chip-user' %>"><%= profile.user.role === 'admin' ? 'Администратор' : 'Участник команды' %></span>
+        <% if (profile.user.studyGroup) { %><span class="pill">🎓 <%= profile.user.studyGroup %></span><% } %>
+        <span class="pill mono" style="color:var(--amber);"><%= profile.points %> баллов</span>
+        <span class="pill">В команде с <%= h.formatDate(profile.user.createdAt) %></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="layout-2col" style="margin-top:28px;">
+    <div>
+      <!-- Контакты -->
+      <div class="panel">
+        <div class="panel-title">Контактная информация</div>
+        <% if (isOwner || isAdmin) { %>
+          <form action="/profile/<%= profile.user.id %>?_method=PUT" method="POST" class="stack">
+            <div class="field-row">
+              <div class="field">
+                <label for="fullName">Имя и фамилия</label>
+                <input type="text" id="fullName" name="fullName" value="<%= profile.user.fullName %>" required>
+              </div>
+              <div class="field">
+                <label for="studyGroup">Учебная группа</label>
+                <input type="text" id="studyGroup" name="studyGroup" value="<%= profile.user.studyGroup || '' %>" placeholder="ИУ7-11" required>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="phone">Телефон</label>
+                <input type="tel" id="phone" name="phone" value="<%= profile.user.phone || '' %>">
+              </div>
+              <div class="field">
+                <label>Email</label>
+                <input type="text" value="<%= profile.user.email %>" disabled style="opacity:.6;">
+              </div>
+            </div>
+            <div class="field">
+              <label for="bio">О себе</label>
+              <textarea id="bio" name="bio" rows="3"><%= profile.user.bio || '' %></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+          </form>
+        <% } else { %>
+          <p><strong>Email:</strong> <%= profile.user.email %></p>
+          <p><strong>Учебная группа:</strong> <%= profile.user.studyGroup || '—' %></p>
+          <p><strong>Телефон:</strong> <%= profile.user.phone || '—' %></p>
+          <% if (profile.user.bio) { %><p><%= profile.user.bio %></p><% } %>
+        <% } %>
+      </div>
+
+      <!-- Мероприятия -->
+      <div class="panel">
+        <div class="panel-title">Мероприятия</div>
+        <% if (!profile.signups.length) { %>
+          <p class="text-faint">Пока нет заявок на мероприятия.</p>
+        <% } else { %>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <% profile.signups.forEach(function(s){ %>
+              <a href="/events/<%= s.event.id %>" class="card card-link" style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px;">
+                <span>
+                  <strong style="color:var(--text);"><%= s.event.title %></strong>
+                  <div class="text-faint" style="font-size:12px;"><%= s.position ? s.position.name : '—' %> · <%= h.formatDateTime(s.event.startsAt) %></div>
+                </span>
+                <span class="badge badge-<%= s.status %>"><%= s.status === 'pending' ? 'ожидает' : s.status === 'approved' ? 'подтверждён' : s.status === 'done' ? 'выполнено (+' + s.pointsAwarded + ')' : 'отклонён' %></span>
+              </a>
+            <% }); %>
+          </div>
+        <% } %>
+      </div>
+
+      <!-- История баллов -->
+      <div class="panel">
+        <div class="panel-title">История баллов</div>
+        <% if (!profile.pointsHistory.length) { %>
+          <p class="text-faint">Баллы ещё не начислялись.</p>
+        <% } else { %>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Дата</th><th>Причина</th><th>Кто начислил</th><th>Баллы</th></tr></thead>
+              <tbody>
+                <% profile.pointsHistory.forEach(function(p){ %>
+                  <tr>
+                    <td class="text-faint"><%= h.formatDate(p.awardedAt) %></td>
+                    <td>
+                      <% if (p.event) { %>
+                        <a href="/events/<%= p.event.id %>" style="color:var(--text);"><%= p.reason %></a>
+                      <% } else if (p.academy) { %>
+                        <a href="/academies/<%= p.academy.id %>" style="color:var(--text);"><%= p.reason %></a>
+                      <% } else { %>
+                        <%= p.reason %>
+                      <% } %>
+                    </td>
+                    <td class="text-faint"><%= p.awardedByUser ? p.awardedByUser.fullName : '—' %></td>
+                    <td class="points-cell"><%= p.amount > 0 ? '+' : '' %><%= p.amount %></td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+
+        <% if (isAdmin) { %>
+          <form action="/profile/<%= profile.user.id %>/points" method="POST" class="field-row" style="margin-top:16px; align-items:flex-end;">
+            <div class="field">
+              <label for="amount">Баллы (+/-)</label>
+              <input type="number" id="amount" name="amount" required>
+            </div>
+            <div class="field" style="grid-column: span 1;">
+              <label for="reason">Причина</label>
+              <input type="text" id="reason" name="reason" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="height:44px;">Начислить</button>
+          </form>
+        <% } %>
+      </div>
+    </div>
+
+    <div>
+      <!-- Должности -->
+      <div class="panel">
+        <div class="panel-title">Доступные должности</div>
+        <% if (profile.positions.length) { %>
+          <div class="pill-group" style="margin-bottom: <%= isAdmin ? '16px' : '0' %>;">
+            <% profile.positions.forEach(function(p){ %><span class="pill"><%= p.name %></span><% }); %>
+          </div>
+        <% } else { %>
+          <p class="text-faint" style="margin-bottom: <%= isAdmin ? '16px' : '0' %>;">Должности не назначены.</p>
+        <% } %>
+
+        <% if (isAdmin) { %>
+          <form action="/profile/<%= profile.user.id %>/positions" method="POST" class="stack">
+            <div style="display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto;">
+              <% allPositions.forEach(function(p){ %>
+                <label class="check-row" style="text-transform:none; font-weight:400; color:var(--text);">
+                  <input type="checkbox" name="positionIds" value="<%= p.id %>" <%= profile.positions.some(function(up){ return up.id === p.id; }) ? 'checked' : '' %>>
+                  <%= p.name %>
+                </label>
+              <% }); %>
+              <% if (!allPositions.length) { %><p class="text-faint">Каталог должностей пуст.</p><% } %>
+            </div>
+            <button type="submit" class="btn btn-small">Обновить должности</button>
+          </form>
+        <% } %>
+      </div>
+
+      <!-- Ачивки (медали) -->
+      <div class="panel">
+        <div class="panel-title">Ачивки</div>
+        <% if (!profile.achievements.length) { %>
+          <p class="text-faint" style="margin-bottom: <%= isAdmin ? '16px' : '0' %>;">Ачивок пока нет.</p>
+        <% } else { %>
+          <div class="medal-grid" style="margin-bottom: <%= isAdmin ? '18px' : '0' %>;">
+            <% profile.achievements.forEach(function(ua){ %>
+              <div class="medal" title="<%= ua.achievement.description || '' %>">
+                <span class="medal-badge">
+                  <% if (ua.achievement.avatarFile) { %>
+                    <img src="/uploads/achievements/<%= ua.achievement.avatarFile %>" alt="">
+                  <% } else { %>
+                    <%= ua.achievement.icon %>
+                  <% } %>
+                  <% if (!ua.awardedBy) { %><span class="medal-auto-mark" title="Начислено автоматически">⚡</span><% } %>
+                </span>
+                <span class="medal-name"><%= ua.achievement.name %></span>
+                <span class="medal-date"><%= h.formatDate(ua.awardedAt) %></span>
+                <% if (isAdmin) { %>
+                  <form action="/profile/<%= profile.user.id %>/achievements/<%= ua.id %>?_method=DELETE" method="POST" data-confirm="Отозвать ачивку «<%= ua.achievement.name %>»?">
+                    <button type="submit" class="medal-revoke">отозвать</button>
+                  </form>
+                <% } %>
+              </div>
+            <% }); %>
+          </div>
+        <% } %>
+
+        <% if (isAdmin) { %>
+          <form action="/profile/<%= profile.user.id %>/achievements" method="POST" class="stack">
+            <div class="field">
+              <label for="achievementId">Ачивка</label>
+              <select id="achievementId" name="achievementId" required>
+                <% allAchievements.forEach(function(a){ %>
+                  <option value="<%= a.id %>"><%= a.icon %> <%= a.name %><%= a.autoRuleType ? ' (авто)' : '' %></option>
+                <% }); %>
+              </select>
+            </div>
+            <div class="field">
+              <label for="comment">Комментарий</label>
+              <input type="text" id="comment" name="comment" placeholder="Необязательно">
+            </div>
+            <button type="submit" class="btn btn-small">Присвоить ачивку</button>
+          </form>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') -%>

@@ -1,0 +1,77 @@
+<%- include('../partials/head') -%>
+<%- include('../partials/header') -%>
+
+<div class="container" style="max-width:760px;">
+  <div class="section-head">
+    <div>
+      <% if (academy.topic) { %><div class="eyebrow"><%= academy.topic %></div><% } %>
+      <h1 style="font-size:30px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);"><%= academy.title %></h1>
+      <div class="pill-group" style="margin-top:8px;">
+        <span class="pill">🕒 <%= h.formatDateTime(academy.startsAt) %> → <%= h.formatTime(academy.endsAt) %></span>
+        <span class="pill">🏫 <%= academy.room %></span>
+        <% if (academy.speaker) { %><span class="pill">🎤 <%= academy.speaker %></span><% } %>
+      </div>
+    </div>
+    <% if (currentUser && currentUser.role === 'admin') { %>
+      <div class="btn-group">
+        <a href="/academies/<%= academy.id %>/edit" class="btn">Редактировать</a>
+        <form action="/academies/<%= academy.id %>?_method=DELETE" method="POST" data-confirm="Удалить лекцию?">
+          <button type="submit" class="btn btn-danger">Удалить</button>
+        </form>
+      </div>
+    <% } %>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Описание</div>
+    <% if (academy.description) { %>
+      <p style="white-space:pre-wrap; color:var(--text);"><%= academy.description %></p>
+    <% } else { %>
+      <p class="text-faint">Описание не указано.</p>
+    <% } %>
+    <p class="text-faint" style="font-size:12px; margin-top:12px;">Опубликовал: <%= academy.creator ? academy.creator.fullName : '—' %></p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Баллы за лекцию</div>
+    <% if (!pointsAwards.length) { %>
+      <p class="text-faint" style="margin-bottom: <%= currentUser && currentUser.role === 'admin' ? '16px' : '0' %>;">Баллы за эту лекцию ещё никому не начислены.</p>
+    <% } else { %>
+      <div class="table-wrap" style="margin-bottom: <%= currentUser && currentUser.role === 'admin' ? '16px' : '0' %>;">
+        <table>
+          <thead><tr><th>Участник</th><th>Дата</th><th>Баллы</th></tr></thead>
+          <tbody>
+            <% pointsAwards.forEach(function(p){ %>
+              <tr>
+                <td><a href="/profile/<%= p.userId %>" style="color:var(--text); font-weight:600;"><%= p.user ? p.user.fullName : '—' %></a></td>
+                <td class="text-faint"><%= h.formatDate(p.awardedAt) %></td>
+                <td class="points-cell"><%= p.amount > 0 ? '+' : '' %><%= p.amount %></td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+
+    <% if (currentUser && currentUser.role === 'admin') { %>
+      <form action="/academies/<%= academy.id %>/points" method="POST" class="field-row" style="align-items:flex-end;">
+        <div class="field">
+          <label for="userId">Участник</label>
+          <select id="userId" name="userId" required>
+            <% allUsers.forEach(function(u){ %>
+              <option value="<%= u.id %>"><%= u.fullName %></option>
+            <% }); %>
+          </select>
+        </div>
+        <div class="field">
+          <label for="amount">Баллы</label>
+          <input type="number" id="amount" name="amount" value="10" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="height:44px;">Начислить</button>
+      </form>
+      <p class="hint" style="margin-top:10px; margin-bottom:0;">Причина по умолчанию — название лекции. Начисление также учитывается в автоправилах ачивок по числу посещённых лекций.</p>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/footer') -%>

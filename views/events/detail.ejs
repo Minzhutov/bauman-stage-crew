@@ -1,0 +1,133 @@
+<%- include('../partials/head') -%>
+<%- include('../partials/header') -%>
+
+<div class="container">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow"><%= event.venue ? event.venue.name : 'Площадка не указана' %></div>
+      <h1 style="font-size:32px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);"><%= event.title %></h1>
+      <div class="pill-group" style="margin-top:8px;">
+        <span class="badge badge-<%= event.status %>"><%= event.status === 'planned' ? 'запланировано' : (event.status === 'completed' ? 'завершено' : 'отменено') %></span>
+        <span class="pill">🕒 <%= h.formatDateTime(event.startsAt) %> → <%= h.formatDateTime(event.endsAt) %></span>
+        <% if (event.venue) { %><span class="pill">📍 <%= event.venue.name %><% if (event.venue.address) { %> · <%= event.venue.address %><% } %></span><% } %>
+      </div>
+    </div>
+    <% if (currentUser && currentUser.role === 'admin') { %>
+      <div class="btn-group">
+        <a href="/events/<%= event.id %>/edit" class="btn">Редактировать</a>
+        <form action="/events/<%= event.id %>?_method=DELETE" method="POST" data-confirm="Удалить мероприятие безвозвратно?">
+          <button type="submit" class="btn btn-danger">Удалить</button>
+        </form>
+      </div>
+    <% } %>
+  </div>
+
+  <div class="layout-2col">
+    <div>
+      <div class="panel">
+        <div class="panel-title">Техническое задание</div>
+        <% if (event.description) { %>
+          <p style="white-space:pre-wrap; color:var(--text);"><%= event.description %></p>
+        <% } else { %>
+          <p class="text-faint">Техническое задание не указано.</p>
+        <% } %>
+        <p class="text-faint" style="font-size:12px; margin-top:12px;">Опубликовал: <%= event.creator ? event.creator.fullName : '—' %></p>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Требуемые специалисты</div>
+        <% event.requirements.forEach(function(r){ %>
+          <div class="req-row">
+            <div class="req-row-head">
+              <span><%= r.position ? r.position.name : 'Неизвестная должность' %></span>
+              <span class="count"><%= r.approvedCount %> / <%= r.needed %></span>
+            </div>
+            <div class="progress"><div class="progress-fill <%= r.isFull ? 'full' : '' %>" style="width: <%= Math.min(100, (r.approvedCount / r.needed) * 100) %>%;"></div></div>
+
+            <% if (r.approved.length || r.pending.length) { %>
+              <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+                <% r.approved.forEach(function(s){ %>
+                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+                    <a href="/profile/<%= s.user.id %>" style="color:var(--text);">
+                      <span class="badge badge-<%= s.status %>"><%= s.status === 'done' ? 'выполнено' : 'подтверждён' %></span>
+                      <%= s.user ? s.user.fullName : '—' %>
+                    </a>
+                    <span style="display:flex; gap:8px; align-items:center;">
+                      <% if (s.status === 'done') { %>
+                        <span class="mono text-faint">+<%= s.pointsAwarded %> б.</span>
+                      <% } else if (currentUser && currentUser.role === 'admin') { %>
+                        <form action="/events/<%= event.id %>/signups/<%= s.id %>?_method=PUT" method="POST" style="display:flex; gap:6px; align-items:center;">
+                          <input type="hidden" name="action" value="complete">
+                          <input type="number" name="points" min="0" max="500" value="20" style="width:70px; padding:4px 8px;">
+                          <button type="submit" class="btn btn-small btn-primary">Закрыть смену</button>
+                        </form>
+                      <% } %>
+                    </span>
+                  </div>
+                <% }); %>
+                <% r.pending.forEach(function(s){ %>
+                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+                    <a href="/profile/<%= s.user.id %>" style="color:var(--text);">
+                      <span class="badge badge-pending">заявка</span>
+                      <%= s.user ? s.user.fullName : '—' %>
+                    </a>
+                    <% if (currentUser && currentUser.role === 'admin') { %>
+                      <span class="btn-group">
+                        <form action="/events/<%= event.id %>/signups/<%= s.id %>?_method=PUT" method="POST"><input type="hidden" name="action" value="approve"><button type="submit" class="btn btn-small">Подтвердить</button></form>
+                        <form action="/events/<%= event.id %>/signups/<%= s.id %>?_method=PUT" method="POST"><input type="hidden" name="action" value="reject"><button type="submit" class="btn btn-small btn-danger">Отклонить</button></form>
+                      </span>
+                    <% } %>
+                  </div>
+                <% }); %>
+              </div>
+            <% } %>
+          </div>
+        <% }); %>
+        <% if (!event.requirements.length) { %>
+          <p class="text-faint">Требования к специалистам не заданы.</p>
+        <% } %>
+      </div>
+    </div>
+
+    <div>
+      <div class="panel">
+        <div class="panel-title">Ваше участие</div>
+        <% if (!currentUser) { %>
+          <p class="text-faint">Войдите, чтобы откликнуться на мероприятие.</p>
+          <a href="/login" class="btn btn-primary btn-block">Войти</a>
+        <% } else { %>
+          <% if (mySignups.length) { %>
+            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom: <%= availablePositions.length ? '16px' : '0' %>;">
+              <% mySignups.forEach(function(s){ %>
+                <% var pos = event.requirements.find(function(r){ return r.position && r.position.id === s.positionId; }); %>
+                <div class="pill" style="justify-content:space-between;">
+                  <span><%= pos && pos.position ? pos.position.name : '—' %></span>
+                  <span class="badge badge-<%= s.status %>"><%= s.status === 'pending' ? 'ожидает' : s.status === 'approved' ? 'подтверждён' : s.status === 'done' ? 'выполнено' : 'отклонён' %></span>
+                </div>
+                <% if (s.status === 'pending') { %>
+                  <form action="/events/<%= event.id %>/signups/<%= s.id %>?_method=DELETE" method="POST" data-confirm="Отменить заявку?">
+                    <button type="submit" class="btn btn-small btn-block">Отменить заявку</button>
+                  </form>
+                <% } %>
+              <% }); %>
+            </div>
+          <% } %>
+
+          <% if (availablePositions.length) { %>
+            <p class="hint" style="margin-bottom:10px;">Доступные вам должности для этого мероприятия:</p>
+            <% availablePositions.forEach(function(p){ %>
+              <form action="/events/<%= event.id %>/signups" method="POST" style="margin-bottom:8px;">
+                <input type="hidden" name="positionId" value="<%= p.id %>">
+                <button type="submit" class="btn btn-block">Откликнуться: <%= p.name %></button>
+              </form>
+            <% }); %>
+          <% } else if (!mySignups.length) { %>
+            <p class="text-faint">У вас нет должностей, подходящих для этого мероприятия. Список ваших должностей назначает администратор в вашем профиле.</p>
+          <% } %>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') -%>

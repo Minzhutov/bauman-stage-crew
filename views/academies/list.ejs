@@ -1,0 +1,37 @@
+<%- include('../partials/head') -%>
+<%- include('../partials/header') -%>
+
+<div class="container">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Обучение команды</div>
+      <h1 style="font-size:32px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);">Академии</h1>
+      <p>Анонсы лекций: тема, время и аудитория проведения.</p>
+    </div>
+    <% if (currentUser && currentUser.role === 'admin') { %>
+      <a href="/academies/new" class="btn btn-primary">+ Новая лекция</a>
+    <% } %>
+  </div>
+
+  <% if (!academies.length) { %>
+    <div class="empty"><div class="glyph">🎓</div>Лекций пока не запланировано.</div>
+  <% } else { %>
+    <div class="card-grid">
+      <% academies.forEach(function(a){ %>
+        <a href="/academies/<%= a.id %>" class="card card-link">
+          <div class="card-top">
+            <h3><%= a.title %></h3>
+            <% if (a.topic) { %><span class="badge badge-planned"><%= a.topic %></span><% } %>
+          </div>
+          <div class="meta">
+            <span>🏫 <%= a.room %></span>
+            <span>🕒 <%= h.formatDateTime(a.startsAt) %></span>
+            <% if (a.speaker) { %><span>🎤 <%= a.speaker %></span><% } %>
+          </div>
+        </a>
+      <% }); %>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') -%>

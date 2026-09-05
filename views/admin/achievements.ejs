@@ -1,0 +1,90 @@
+<%- include('../partials/head') -%>
+<%- include('../partials/header') -%>
+
+<div class="container">
+  <div class="eyebrow">Каталог наград</div>
+  <h1 style="font-size:32px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);">Ачивки</h1>
+  <p>Ачивки отображаются в профиле как медали. У каждой — уникальная аватарка (или эмодзи-иконка, если аватарка не загружена) и подпись. Часть ачивок можно настроить на автоматическое присвоение по достижении порога — движок проверяет условие после каждого начисления баллов, закрытия смены или изменения должностей.</p>
+  <%- include('../partials/admin_nav') -%>
+
+  <div class="layout-2col">
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <% achievements.forEach(function(row){ %>
+        <div class="achievement-card">
+          <span class="icon">
+            <% if (row.achievement.avatarFile) { %>
+              <img src="/uploads/achievements/<%= row.achievement.avatarFile %>" alt="">
+            <% } else { %>
+              <%= row.achievement.icon %>
+            <% } %>
+          </span>
+          <div style="flex:1;">
+            <strong><%= row.achievement.name %></strong>
+            <div class="text-faint" style="font-size:12px;"><%= row.achievement.description %></div>
+            <div class="pill-group" style="margin-top:6px;">
+              <span class="text-faint" style="font-size:11px;">Присвоена <%= row.awardedCount %> раз</span>
+              <% if (row.achievement.autoRuleType && autoRuleTypes[row.achievement.autoRuleType]) { %>
+                <span class="badge-auto">⚡ авто: <%= autoRuleTypes[row.achievement.autoRuleType].label.toLowerCase() %> ≥ <%= row.achievement.autoRuleThreshold %></span>
+              <% } else { %>
+                <span class="badge-auto" style="color:var(--text-faint); border-color:var(--border); background:transparent;">вручную</span>
+              <% } %>
+            </div>
+          </div>
+          <form action="/admin/achievements/<%= row.achievement.id %>?_method=DELETE" method="POST" data-confirm="Удалить ачивку «<%= row.achievement.name %>» из каталога? Она будет отозвана у всех, кому присвоена.">
+            <button type="submit" class="btn btn-small btn-danger">Удалить</button>
+          </form>
+        </div>
+      <% }); %>
+      <% if (!achievements.length) { %><p class="text-faint">Каталог пуст.</p><% } %>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Добавить ачивку</div>
+      <form action="/admin/achievements" method="POST" enctype="multipart/form-data" class="stack">
+        <div class="field-row">
+          <div class="field">
+            <label for="icon">Иконка (эмодзи, запасной вариант)</label>
+            <input type="text" id="icon" name="icon" value="🏅" maxlength="4">
+          </div>
+          <div class="field">
+            <label for="name">Название / подпись</label>
+            <input type="text" id="name" name="name" required>
+          </div>
+        </div>
+        <div class="field">
+          <label for="description">Описание</label>
+          <textarea id="description" name="description" rows="3"></textarea>
+        </div>
+        <div class="field">
+          <label for="avatar">Аватарка (необязательно)</label>
+          <input type="file" id="avatar" name="avatar" accept=".png,.jpg,.jpeg,.webp,.gif,.svg" data-filename-target="#avatar-filename">
+          <span id="avatar-filename" class="hint">Файл не выбран — будет использована эмодзи-иконка</span>
+        </div>
+
+        <fieldset>
+          <legend>Автоматическое присвоение</legend>
+          <div class="field-row">
+            <div class="field">
+              <label for="autoRuleType">Условие</label>
+              <select id="autoRuleType" name="autoRuleType">
+                <option value="">Только вручную</option>
+                <% Object.keys(autoRuleTypes).forEach(function(key){ %>
+                  <option value="<%= key %>"><%= autoRuleTypes[key].label %></option>
+                <% }); %>
+              </select>
+            </div>
+            <div class="field">
+              <label for="autoRuleThreshold">Порог (≥)</label>
+              <input type="number" id="autoRuleThreshold" name="autoRuleThreshold" min="1" placeholder="напр. 10">
+            </div>
+          </div>
+          <p class="hint" style="margin-bottom:0;">Если выбрано условие, участники, уже соответствующие порогу, получат ачивку сразу после сохранения.</p>
+        </fieldset>
+
+        <button type="submit" class="btn btn-primary btn-block">Добавить</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') -%>

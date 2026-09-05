@@ -1,0 +1,14 @@
+<%- include('../partials/head') -%>
+<%- include('../partials/header') -%>
+<div class="container">
+  <div class="empty" style="margin: 60px 0;">
+    <div class="glyph">⚠️</div>
+    <h2>500 · Сбой на борту</h2>
+    <p>Что-то пошло не так на сервере. Попробуйте обновить страницу.</p>
+    <% if (typeof message !== 'undefined' && message) { %>
+      <p class="mono text-faint" style="font-size:12px;"><%= message %></p>
+    <% } %>
+    <a href="/" class="btn btn-primary">Вернуться на базу</a>
+  </div>
+</div>
+<%- include('../partials/footer') -%>
