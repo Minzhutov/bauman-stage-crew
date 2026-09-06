@@ -1,0 +1,61 @@
+<%- include('../partials/head') -%>
+<%- include('../partials/header') -%>
+
+<div class="container">
+  <div class="eyebrow">Лидеры периода</div>
+  <h1 style="font-size:32px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);">Сезоны</h1>
+  <p>Сезон задаёт временной период (например, месяц), для которого в таблице лидеров можно посмотреть отдельный зачёт — считаются только баллы, ачивки и закрытые смены за это время.</p>
+  <%- include('../partials/admin_nav') -%>
+
+  <div class="layout-2col">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Сезон</th><th>Период</th><th>Статус</th><th></th></tr></thead>
+        <tbody>
+          <% seasons.forEach(function(row){ %>
+            <tr>
+              <td style="font-weight:600;"><%= row.season.name %></td>
+              <td class="text-faint"><%= h.formatDate(row.season.startsAt) %> — <%= h.formatDate(row.season.endsAt) %></td>
+              <td>
+                <% if (row.status === 'active') { %>
+                  <span class="badge badge-completed">Идёт сейчас</span>
+                <% } else if (row.status === 'upcoming') { %>
+                  <span class="badge badge-planned">Скоро</span>
+                <% } else { %>
+                  <span class="badge">Завершён</span>
+                <% } %>
+              </td>
+              <td>
+                <form action="/admin/seasons/<%= row.season.id %>?_method=DELETE" method="POST" data-confirm="Удалить сезон «<%= row.season.name %>»? Таблица лидеров за этот период станет недоступна.">
+                  <button type="submit" class="btn btn-small btn-danger">Удалить</button>
+                </form>
+              </td>
+            </tr>
+          <% }); %>
+          <% if (!seasons.length) { %><tr><td colspan="4" class="text-faint" style="text-align:center; padding:24px;">Сезоны не заданы — таблица лидеров показывает рейтинг за всё время.</td></tr><% } %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">Добавить сезон</div>
+      <form action="/admin/seasons" method="POST" class="stack">
+        <div class="field">
+          <label for="name">Название</label>
+          <input type="text" id="name" name="name" placeholder="Например, «Сентябрь 2026»" required>
+        </div>
+        <div class="field">
+          <label for="startsAt">Начало</label>
+          <input type="datetime-local" id="startsAt" name="startsAt" required>
+        </div>
+        <div class="field">
+          <label for="endsAt">Окончание</label>
+          <input type="datetime-local" id="endsAt" name="endsAt" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Добавить</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') -%>

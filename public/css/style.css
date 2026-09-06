@@ -91,10 +91,17 @@ img { max-width: 100%; }
 
 .site-header .container {
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.header-row {
+  display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 68px;
-  gap: 24px;
+  gap: 16px;
 }
 
 .brand {
@@ -143,7 +150,6 @@ img { max-width: 100%; }
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
-  flex: 1;
   justify-content: center;
 }
 .nav-links a {
@@ -168,7 +174,7 @@ img { max-width: 100%; }
   display: flex;
   align-items: center;
   gap: 10px;
-  white-space: nowrap;
+  flex-shrink: 0;
 }
 .nav-user .chip {
   display: flex;
@@ -179,6 +185,12 @@ img { max-width: 100%; }
   border-radius: 999px;
   background: var(--bg-card);
   font-size: 12.5px;
+  max-width: 100%;
+}
+.nav-user .chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .nav-user .avatar {
   width: 24px;
@@ -456,7 +468,101 @@ tbody tr:hover { background: rgba(139,92,246,0.04); }
 .rank-1 .rank-cell { color: #ffd75e; }
 .rank-2 .rank-cell { color: #d7d7e2; }
 .rank-3 .rank-cell { color: #d59a63; }
+.rank-1 { background: linear-gradient(90deg, rgba(255,215,94,0.08), transparent 65%); border-left: 3px solid #ffd75e; }
+.rank-2 { background: linear-gradient(90deg, rgba(215,215,226,0.06), transparent 65%); border-left: 3px solid #d7d7e2; }
+.rank-3 { background: linear-gradient(90deg, rgba(213,154,99,0.06), transparent 65%); border-left: 3px solid #d59a63; }
+.rank-1 td, .rank-2 td, .rank-3 td { padding-left: 13px; }
 .points-cell { font-family: var(--font-mono); font-weight: 700; color: var(--violet-bright); }
+
+.leader-name { display: flex; align-items: center; gap: 10px; }
+.leader-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--violet-bright), var(--violet-dim));
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+}
+.leader-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ---------- Подиум ---------- */
+.podium { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 32px 0 28px; align-items: end; }
+.podium-card {
+  position: relative;
+  text-align: center;
+  padding: 28px 16px 22px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+}
+.podium-gold {
+  border-color: rgba(255, 215, 94, 0.5);
+  background: linear-gradient(180deg, rgba(255, 215, 94, 0.1), var(--bg-card) 65%);
+  transform: translateY(-14px);
+}
+.podium-silver { border-color: rgba(215, 215, 226, 0.4); }
+.podium-bronze { border-color: rgba(213, 154, 99, 0.4); }
+.podium-rank {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #060608;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+}
+.podium-gold .podium-rank { background: linear-gradient(135deg, #ffe08a, #d9a441); }
+.podium-silver .podium-rank { background: linear-gradient(135deg, #f2f3f7, #b7b9c4); }
+.podium-bronze .podium-rank { background: linear-gradient(135deg, #e3a86a, #a9673a); }
+.podium-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  margin: 0 auto 14px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 800;
+  color: white;
+  background: linear-gradient(135deg, var(--violet-bright), var(--violet-dim));
+}
+.podium-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.podium-gold .podium-avatar { box-shadow: 0 0 0 3px rgba(255, 215, 94, 0.65), 0 0 26px rgba(255, 215, 94, 0.35); }
+.podium-silver .podium-avatar { box-shadow: 0 0 0 3px rgba(215, 215, 226, 0.55); }
+.podium-bronze .podium-avatar { box-shadow: 0 0 0 3px rgba(213, 154, 99, 0.55); }
+
+/* ---------- Сезоны в таблице лидеров ---------- */
+.season-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 18px 0 6px; }
+.season-tabs a {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  background: var(--bg-card);
+}
+.season-tabs a:hover { color: var(--text); }
+.season-tabs a.active {
+  color: var(--white);
+  background: linear-gradient(180deg, rgba(139,92,246,0.28), rgba(139,92,246,0.12));
+  border-color: rgba(139,92,246,0.45);
+}
 
 /* ---------- Forms ---------- */
 form.stack { display: flex; flex-direction: column; gap: 18px; }
@@ -693,11 +799,16 @@ main { flex: 1; position: relative; z-index: 1; }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 860px) {
-  .site-header .container { flex-wrap: wrap; height: auto; padding: 12px 20px; }
-  .nav-links { order: 3; width: 100%; justify-content: flex-start; overflow-x: auto; }
+  .site-header .container { padding-left: 20px; padding-right: 20px; }
+  .nav-links { flex-wrap: nowrap; justify-content: flex-start; overflow-x: auto; }
+  .nav-links a { flex-shrink: 0; white-space: nowrap; }
   .brand-mark-lg { height: 64px; }
   .brand-wordmark-lg { height: 46px; }
   .stat-strip { grid-template-columns: repeat(2, 1fr); }
   .layout-2col, .layout-2col-rev { grid-template-columns: 1fr; }
   .field-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .nav-user .points, .nav-user .role-admin { display: none; }
+  .nav-user .chip-name { max-width: 90px; }
 }

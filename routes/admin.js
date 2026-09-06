@@ -161,6 +161,56 @@ router.delete('/venues/:id', (req, res) => {
   res.redirect('/admin/venues');
 });
 
+// --- Сезоны (лидеры месяца/периода) ---
+
+router.get('/seasons', (req, res) => {
+  const now = Date.now();
+  const seasons = store
+    .all('seasons')
+    .map((s) => {
+      const starts = new Date(s.startsAt).getTime();
+      const ends = new Date(s.endsAt).getTime();
+      const status = now < starts ? 'upcoming' : now > ends ? 'ended' : 'active';
+      return { season: s, status };
+    })
+    .sort((a, b) => new Date(b.season.startsAt) - new Date(a.season.startsAt));
+  res.render('admin/seasons', { title: 'Сезоны', seasons, form: {} });
+});
+
+router.post('/seasons', (req, res) => {
+  const { name, startsAt, endsAt } = req.body;
+  const errors = [];
+  if (!name || !name.trim()) errors.push('Укажите название сезона.');
+  if (!startsAt || !endsAt) errors.push('Укажите начало и окончание сезона.');
+  if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {
+    errors.push('Окончание должно быть позже начала.');
+  }
+  if (errors.length) {
+    errors.forEach((e) => req.flash('error', e));
+    return res.redirect('/admin/seasons');
+  }
+  store.insert('seasons', {
+    name: name.trim(),
+    startsAt: new Date(startsAt).toISOString(),
+    endsAt: new Date(endsAt).toISOString(),
+    createdBy: req.currentUser.id,
+    createdAt: new Date().toISOString(),
+  });
+  req.flash('success', 'Сезон добавлен.');
+  res.redirect('/admin/seasons');
+});
+
+router.delete('/seasons/:id', (req, res) => {
+  const season = store.find('seasons', req.params.id);
+  if (!season) {
+    req.flash('error', 'Сезон не найден.');
+    return res.redirect('/admin/seasons');
+  }
+  store.remove('seasons', season.id);
+  req.flash('success', `Сезон «${season.name}» удалён.`);
+  res.redirect('/admin/seasons');
+});
+
 // --- Ачивки ---
 
 router.get('/achievements', (req, res) => {

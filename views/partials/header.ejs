@@ -1,9 +1,36 @@
 <header class="site-header">
   <div class="container">
-    <a href="/" class="brand">
-      <%- include('brand_mark') -%>
-      <%- include('brand_wordmark') -%>
-    </a>
+    <div class="header-row">
+      <a href="/" class="brand">
+        <%- include('brand_mark') -%>
+        <%- include('brand_wordmark') -%>
+      </a>
+
+      <div class="nav-user">
+        <% if (currentUser) { %>
+          <a href="/profile/<%= currentUser.id %>" class="chip">
+            <span class="avatar">
+              <% if (currentUser.avatarFile) { %>
+                <img src="/uploads/avatars/<%= currentUser.avatarFile %>" alt="">
+              <% } else { %>
+                <%= currentUser.fullName.trim().charAt(0).toUpperCase() %>
+              <% } %>
+            </span>
+            <span class="chip-name">
+              <%= currentUser.fullName %>
+              <% if (currentUser.role === 'admin') { %><span class="role-admin"> · админ</span><% } %>
+            </span>
+            <span class="points"><%= domain.userPoints(currentUser.id) %> б.</span>
+          </a>
+          <form action="/logout" method="POST">
+            <button type="submit" class="btn btn-small">Выйти</button>
+          </form>
+        <% } else { %>
+          <a href="/login" class="btn btn-small">Войти</a>
+          <a href="/register" class="btn btn-primary btn-small">Регистрация</a>
+        <% } %>
+      </div>
+    </div>
 
     <nav class="nav-links">
       <a href="/" class="<%= currentPath === '/' ? 'active' : '' %>">Главная</a>
@@ -15,31 +42,6 @@
         <a href="/admin/users" class="<%= currentPath.startsWith('/admin') ? 'active' : '' %>">Админ</a>
       <% } %>
     </nav>
-
-    <div class="nav-user">
-      <% if (currentUser) { %>
-        <a href="/profile/<%= currentUser.id %>" class="chip">
-          <span class="avatar">
-            <% if (currentUser.avatarFile) { %>
-              <img src="/uploads/avatars/<%= currentUser.avatarFile %>" alt="">
-            <% } else { %>
-              <%= currentUser.fullName.trim().charAt(0).toUpperCase() %>
-            <% } %>
-          </span>
-          <span>
-            <%= currentUser.fullName %>
-            <% if (currentUser.role === 'admin') { %><span class="role-admin"> · админ</span><% } %>
-          </span>
-          <span class="points"><%= domain.userPoints(currentUser.id) %> б.</span>
-        </a>
-        <form action="/logout" method="POST">
-          <button type="submit" class="btn btn-small">Выйти</button>
-        </form>
-      <% } else { %>
-        <a href="/login" class="btn btn-small">Войти</a>
-        <a href="/register" class="btn btn-primary btn-small">Регистрация</a>
-      <% } %>
-    </div>
   </div>
 </header>
 <main>
