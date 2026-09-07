@@ -45,6 +45,7 @@
   </div>
 </header>
 <main>
+<% if ((successMessages && successMessages.length) || (errorMessages && errorMessages.length)) { %>
 <div class="container" style="padding-top: 32px; padding-bottom: 12px;">
   <% if (successMessages && successMessages.length) { %>
     <div class="flash-stack">
@@ -57,3 +58,4 @@
     </div>
   <% } %>
 </div>
+<% } %>
