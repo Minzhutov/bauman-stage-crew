@@ -2,7 +2,7 @@
 const express = require('express');
 const store = require('../lib/store');
 const domain = require('../lib/domain');
-const { requireAuth, requireStaff, isStaff } = require('../lib/auth');
+const { requireAuth, requireAdmin } = require('../lib/auth');
 
 const router = express.Router();
 
@@ -24,12 +24,20 @@ function eventFormLocals(overrides) {
       title: 'Новое мероприятие',
       positions: store.all('positions'),
       venues: store.all('venues'),
+      techDirectors: store.where('users', (u) => u.role === 'tech_director' || u.role === 'admin'),
       form: {},
       event: null,
       requiredMap: {},
     },
     overrides
   );
+}
+
+function parseTechDirectorId(body) {
+  const id = parseInt(body.techDirectorId, 10);
+  if (!Number.isFinite(id)) return null;
+  const user = store.find('users', id);
+  return user && (user.role === 'tech_director' || user.role === 'admin') ? id : null;
 }
 
 router.get('/', (req, res) => {
@@ -47,11 +55,11 @@ router.get('/', (req, res) => {
   });
 });
 
-router.get('/new', requireAuth, requireStaff, (req, res) => {
+router.get('/new', requireAuth, requireAdmin, (req, res) => {
   res.render('events/form', eventFormLocals({ title: 'Новое мероприятие' }));
 });
 
-router.post('/', requireAuth, requireStaff, (req, res) => {
+router.post('/', requireAuth, requireAdmin, (req, res) => {
   const { title, description, venueId, startsAt, endsAt } = req.body;
   const errors = [];
   if (!title || !title.trim()) errors.push('Укажите название мероприятия.');
@@ -84,6 +92,7 @@ router.post('/', requireAuth, requireStaff, (req, res) => {
     endsAt: new Date(endsAt).toISOString(),
     status: 'planned',
     requiredPositions,
+    techDirectorId: parseTechDirectorId(req.body),
     createdBy: req.currentUser.id,
     createdAt: new Date().toISOString(),
   });
@@ -122,25 +131,33 @@ router.get('/:id', (req, res) => {
   });
 });
 
-router.get('/:id/edit', requireAuth, requireStaff, (req, res) => {
+router.get('/:id/edit', requireAuth, (req, res) => {
   const event = store.find('events', req.params.id);
   if (!event) {
     req.flash('error', 'Мероприятие не найдено.');
     return res.redirect('/events');
   }
+  if (!domain.canManageEvent(req.currentUser, event)) {
+    req.flash('error', 'Редактировать это мероприятие может только администратор или назначенный технический директор.');
+    return res.redirect(`/events/${event.id}`);
+  }
   const requiredMap = {};
   (event.requiredPositions || []).forEach((r) => { requiredMap[r.positionId] = r.count; });
   res.render(
     'events/form',
-    eventFormLocals({ title: 'Редактирование мероприятия', event, form: event, requiredMap })
+    eventFormLocals({ title: 'Редактирование мероприятия', event: domain.eventWithDetails(event), form: event, requiredMap })
   );
 });
 
-router.put('/:id', requireAuth, requireStaff, (req, res) => {
+router.put('/:id', requireAuth, (req, res) => {
   const event = store.find('events', req.params.id);
   if (!event) {
     req.flash('error', 'Мероприятие не найдено.');
     return res.redirect('/events');
+  }
+  if (!domain.canManageEvent(req.currentUser, event)) {
+    req.flash('error', 'Редактировать это мероприятие может только администратор или назначенный технический директор.');
+    return res.redirect(`/events/${event.id}`);
   }
   const { title, description, venueId, startsAt, endsAt, status } = req.body;
   const errors = [];
@@ -163,6 +180,9 @@ router.put('/:id', requireAuth, requireStaff, (req, res) => {
     );
   }
 
+  // технического директора назначает только админ — заявку от тех.директора на смену назначения игнорируем
+  const techDirectorId = req.currentUser.role === 'admin' ? parseTechDirectorId(req.body) : event.techDirectorId;
+
   store.update('events', event.id, {
     title: title.trim(),
     description: (description || '').trim(),
@@ -171,13 +191,14 @@ router.put('/:id', requireAuth, requireStaff, (req, res) => {
     endsAt: new Date(endsAt).toISOString(),
     status: status || event.status,
     requiredPositions,
+    techDirectorId,
   });
 
   req.flash('success', 'Мероприятие обновлено.');
   res.redirect(`/events/${event.id}`);
 });
 
-router.delete('/:id', requireAuth, requireStaff, (req, res) => {
+router.delete('/:id', requireAuth, requireAdmin, (req, res) => {
   const event = store.find('events', req.params.id);
   if (!event) {
     req.flash('error', 'Мероприятие не найдено.');
@@ -237,29 +258,38 @@ router.delete('/:id/signups/:signupId', requireAuth, (req, res) => {
     req.flash('error', 'Заявка не найдена.');
     return res.redirect(`/events/${req.params.id}`);
   }
+  const event = store.find('events', req.params.id);
   const isOwner = signup.userId === req.currentUser.id;
-  const staff = isStaff(req.currentUser);
-  if (!isOwner && !staff) {
+  const canManage = domain.canManageEvent(req.currentUser, event);
+  // сам участник может отменить заявку или отказаться от уже подтверждённой
+  // должности — но не задним числом отменить выполненную (с начисленными баллами)
+  const ownerCancellable = signup.status === 'pending' || signup.status === 'approved';
+  if (!isOwner && !canManage) {
     req.flash('error', 'Недостаточно прав для отмены этой заявки.');
     return res.redirect(`/events/${req.params.id}`);
   }
-  if (isOwner && !staff && signup.status !== 'pending') {
-    req.flash('error', 'Отменить можно только заявку в статусе ожидания.');
+  if (isOwner && !canManage && !ownerCancellable) {
+    req.flash('error', 'Эту заявку уже нельзя отменить самостоятельно — обратитесь к администратору.');
     return res.redirect(`/events/${req.params.id}`);
   }
+  const wasApproved = signup.status === 'approved';
   store.remove('eventSignups', signup.id);
-  req.flash('success', 'Заявка отменена.');
+  req.flash('success', isOwner && wasApproved ? 'Вы отказались от участия в мероприятии — место освободилось.' : 'Заявка отменена.');
   res.redirect(`/events/${req.params.id}`);
 });
 
-router.put('/:id/signups/:signupId', requireAuth, requireStaff, (req, res) => {
+router.put('/:id/signups/:signupId', requireAuth, (req, res) => {
   const signup = store.find('eventSignups', req.params.signupId);
   if (!signup || signup.eventId !== Number(req.params.id)) {
     req.flash('error', 'Заявка не найдена.');
     return res.redirect(`/events/${req.params.id}`);
   }
-  const { action, points } = req.body;
   const event = store.find('events', req.params.id);
+  if (!domain.canManageEvent(req.currentUser, event)) {
+    req.flash('error', 'Управлять заявками этого мероприятия может только администратор или назначенный технический директор.');
+    return res.redirect(`/events/${req.params.id}`);
+  }
+  const { action, points } = req.body;
 
   if (action === 'approve') {
     store.update('eventSignups', signup.id, {

@@ -39,6 +39,22 @@
       <% } %>
     </div>
 
+    <div class="field">
+      <label for="techDirectorId">Технический директор</label>
+      <% if (currentUser.role === 'admin') { %>
+        <select id="techDirectorId" name="techDirectorId">
+          <option value="">Не назначен</option>
+          <% techDirectors.forEach(function(td){ %>
+            <option value="<%= td.id %>" <%= form.techDirectorId && Number(form.techDirectorId) === td.id ? 'selected' : '' %>><%= td.fullName %><%= td.id === currentUser.id ? ' (вы)' : '' %><%= td.role === 'admin' ? ' · администратор' : '' %></option>
+          <% }); %>
+        </select>
+        <p class="hint">Технический директор сможет редактировать это мероприятие, разбирать заявки и закрывать смены наравне с администратором. Можно назначить себя.</p>
+      <% } else { %>
+        <input type="text" value="<%= event && event.techDirector ? event.techDirector.fullName : 'Не назначен' %>" disabled>
+        <p class="hint">Технического директора назначает администратор.</p>
+      <% } %>
+    </div>
+
     <div class="field-row">
       <div class="field">
         <label for="startsAt">Начало</label>

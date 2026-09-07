@@ -12,12 +12,14 @@
         <% if (event.venue) { %><span class="pill">📍 <%= event.venue.name %><% if (event.venue.address) { %> · <%= event.venue.address %><% } %></span><% } %>
       </div>
     </div>
-    <% if (auth.isStaff(currentUser)) { %>
+    <% if (domain.canManageEvent(currentUser, event)) { %>
       <div class="btn-group">
         <a href="/events/<%= event.id %>/edit" class="btn">Редактировать</a>
-        <form action="/events/<%= event.id %>?_method=DELETE" method="POST" data-confirm="Удалить мероприятие безвозвратно?">
-          <button type="submit" class="btn btn-danger">Удалить</button>
-        </form>
+        <% if (currentUser.role === 'admin') { %>
+          <form action="/events/<%= event.id %>?_method=DELETE" method="POST" data-confirm="Удалить мероприятие безвозвратно?">
+            <button type="submit" class="btn btn-danger">Удалить</button>
+          </form>
+        <% } %>
       </div>
     <% } %>
   </div>
@@ -31,7 +33,48 @@
         <% } else { %>
           <p class="text-faint">Техническое задание не указано.</p>
         <% } %>
-        <p class="text-faint" style="font-size:12px; margin-top:12px;">Опубликовал: <%= event.creator ? event.creator.fullName : '—' %></p>
+        <div class="event-people">
+          <div class="event-person">
+            <span class="event-person-avatar">
+              <% if (event.creator && event.creator.avatarFile) { %>
+                <img src="/uploads/avatars/<%= event.creator.avatarFile %>" alt="">
+              <% } else { %>
+                <%= event.creator ? event.creator.fullName.trim().charAt(0).toUpperCase() : '?' %>
+              <% } %>
+            </span>
+            <div>
+              <div class="event-person-role">Опубликовал</div>
+              <div class="event-person-name">
+                <% if (event.creator) { %>
+                  <a href="/profile/<%= event.creator.id %>"><%= event.creator.fullName %></a>
+                <% } else { %>—<% } %>
+              </div>
+            </div>
+          </div>
+
+          <% if (event.techDirector) { %>
+            <div class="event-person event-person--tech">
+              <span class="event-person-avatar">
+                <% if (event.techDirector.avatarFile) { %>
+                  <img src="/uploads/avatars/<%= event.techDirector.avatarFile %>" alt="">
+                <% } else { %>
+                  <%= event.techDirector.fullName.trim().charAt(0).toUpperCase() %>
+                <% } %>
+              </span>
+              <div>
+                <div class="event-person-role">🛠️ Технический директор</div>
+                <div class="event-person-name"><a href="/profile/<%= event.techDirector.id %>"><%= event.techDirector.fullName %></a></div>
+              </div>
+            </div>
+          <% } else { %>
+            <div class="event-person event-person--empty">
+              <div>
+                <div class="event-person-role">Технический директор</div>
+                <div>не назначен</div>
+              </div>
+            </div>
+          <% } %>
+        </div>
       </div>
 
       <div class="panel">
@@ -55,7 +98,7 @@
                     <span style="display:flex; gap:8px; align-items:center;">
                       <% if (s.status === 'done') { %>
                         <span class="mono text-faint">+<%= s.pointsAwarded %> б.</span>
-                      <% } else if (auth.isStaff(currentUser)) { %>
+                      <% } else if (domain.canManageEvent(currentUser, event)) { %>
                         <form action="/events/<%= event.id %>/signups/<%= s.id %>?_method=PUT" method="POST" style="display:flex; gap:6px; align-items:center;">
                           <input type="hidden" name="action" value="complete">
                           <input type="number" name="points" min="0" max="500" value="20" style="width:70px; padding:4px 8px;">
@@ -71,7 +114,7 @@
                       <span class="badge badge-pending">заявка</span>
                       <%= s.user ? s.user.fullName : '—' %>
                     </a>
-                    <% if (auth.isStaff(currentUser)) { %>
+                    <% if (domain.canManageEvent(currentUser, event)) { %>
                       <span class="btn-group">
                         <form action="/events/<%= event.id %>/signups/<%= s.id %>?_method=PUT" method="POST"><input type="hidden" name="action" value="approve"><button type="submit" class="btn btn-small">Подтвердить</button></form>
                         <form action="/events/<%= event.id %>/signups/<%= s.id %>?_method=PUT" method="POST"><input type="hidden" name="action" value="reject"><button type="submit" class="btn btn-small btn-danger">Отклонить</button></form>
@@ -107,6 +150,10 @@
                 <% if (s.status === 'pending') { %>
                   <form action="/events/<%= event.id %>/signups/<%= s.id %>?_method=DELETE" method="POST" data-confirm="Отменить заявку?">
                     <button type="submit" class="btn btn-small btn-block">Отменить заявку</button>
+                  </form>
+                <% } else if (s.status === 'approved') { %>
+                  <form action="/events/<%= event.id %>/signups/<%= s.id %>?_method=DELETE" method="POST" data-confirm="Отказаться от участия в мероприятии? Место освободится для другого специалиста.">
+                    <button type="submit" class="btn btn-small btn-block btn-danger">Отказаться от участия</button>
                   </form>
                 <% } %>
               <% }); %>
