@@ -2,9 +2,17 @@
 <%- include('partials/header') -%>
 
 <section class="hero">
+  <div class="hero-beams" aria-hidden="true">
+    <% for (var bi = 0; bi < 6; bi++) { %><span class="hero-beam"></span><% } %>
+  </div>
   <div class="container">
     <div class="eyebrow eyebrow--plain" style="justify-content:center;">Там, где начинается сцена</div>
-    <div class="hero-brand"><%- include('partials/brand_mark', { sizeClass: 'brand-mark-lg' }) -%></div>
+    <div class="hero-brand">
+      <div class="hero-particles">
+        <% for (var pi = 0; pi < 8; pi++) { %><span class="hero-particle" style="--i:<%= pi %>;"></span><% } %>
+      </div>
+      <%- include('partials/brand_mark', { sizeClass: 'brand-mark-lg' }) -%>
+    </div>
     <div class="hero-wordmark"><%- include('partials/brand_wordmark', { sizeClass: 'brand-wordmark-lg' }) -%></div>
     <p class="lede">Единая консоль команды концертного продакшена: мероприятия, обучение, документация и рейтинг команды — в одном месте.</p>
     <div class="hero-actions">

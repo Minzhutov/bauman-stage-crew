@@ -295,8 +295,165 @@ p { color: var(--text-dim); margin: 0 0 12px; }
   text-align: center;
   position: relative;
   z-index: 1;
+  overflow: hidden;
 }
-.hero-brand { margin-bottom: 22px; }
+.hero > .container {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- Гуляющие по сцене лучи света на фоне героя ----------
+   Узкие размытые лучи бьют из-под хэдера (source точно на верхней
+   кромке .hero) и качаются с перекрытием диапазонов углов, поэтому
+   в движении реально пересекаются крест-накрест, как грани в марке,
+   а не расходятся параллельным веером. */
+.hero-beams {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.hero-beam {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 1.8%;
+  height: 150%;
+  background: linear-gradient(
+    to bottom,
+    rgba(216, 200, 255, 0.7) 0%,
+    rgba(167, 139, 250, 0.42) 28%,
+    rgba(139, 92, 246, 0.18) 55%,
+    transparent 82%
+  );
+  border-radius: 999px;
+  transform-origin: top center;
+  filter: blur(9px);
+  opacity: 0.9;
+}
+.hero-beam:nth-child(1) { left: 14%; animation: hero-beam-sweep-1 13s ease-in-out infinite alternate; }
+.hero-beam:nth-child(2) { left: 30%; animation: hero-beam-sweep-2 15s ease-in-out infinite alternate; animation-delay: -3s; }
+.hero-beam:nth-child(3) { left: 46%; animation: hero-beam-sweep-3 11s ease-in-out infinite alternate; animation-delay: -7s; }
+.hero-beam:nth-child(4) { left: 62%; animation: hero-beam-sweep-4 14s ease-in-out infinite alternate; animation-delay: -2s; }
+.hero-beam:nth-child(5) { left: 80%; animation: hero-beam-sweep-5 16s ease-in-out infinite alternate; animation-delay: -9s; }
+.hero-beam:nth-child(6) {
+  left: 6%;
+  width: 1.1%;
+  animation: hero-beam-sweep-6 9s ease-in-out infinite alternate;
+  animation-delay: -4s;
+}
+@keyframes hero-beam-sweep-1 {
+  0% { transform: translateX(-50%) rotate(-52deg); }
+  100% { transform: translateX(-50%) rotate(-14deg); }
+}
+@keyframes hero-beam-sweep-2 {
+  0% { transform: translateX(-50%) rotate(-38deg); }
+  100% { transform: translateX(-50%) rotate(2deg); }
+}
+@keyframes hero-beam-sweep-3 {
+  0% { transform: translateX(-50%) rotate(-20deg); }
+  100% { transform: translateX(-50%) rotate(22deg); }
+}
+@keyframes hero-beam-sweep-4 {
+  0% { transform: translateX(-50%) rotate(-4deg); }
+  100% { transform: translateX(-50%) rotate(40deg); }
+}
+@keyframes hero-beam-sweep-5 {
+  0% { transform: translateX(-50%) rotate(12deg); }
+  100% { transform: translateX(-50%) rotate(56deg); }
+}
+@keyframes hero-beam-sweep-6 {
+  0% { transform: translateX(-50%) rotate(-66deg); }
+  100% { transform: translateX(-50%) rotate(-30deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-beam { animation: none; transform: translateX(-50%) rotate(0deg); }
+}
+.hero-brand {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 22px;
+}
+.hero-brand::before {
+  content: '';
+  position: absolute;
+  inset: -46px;
+  background: radial-gradient(circle, rgba(139,92,246,0.42), rgba(139,92,246,0.1) 55%, transparent 75%);
+  filter: blur(22px);
+  z-index: -1;
+  pointer-events: none;
+  animation: hero-glow-aura 3.6s ease-in-out infinite;
+}
+.hero-brand::after {
+  content: '';
+  position: absolute;
+  inset: -64px;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(139,92,246,0.45) 50deg,
+    transparent 130deg,
+    transparent 210deg,
+    rgba(167,139,250,0.38) 260deg,
+    transparent 340deg,
+    transparent 360deg
+  );
+  filter: blur(20px);
+  animation: hero-glow-spin 8s linear infinite;
+}
+.hero-brand .brand-mark-lg {
+  position: relative;
+  animation: hero-glow-mark 3.6s ease-in-out infinite;
+}
+.hero-particles {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  animation: hero-glow-spin 16s linear infinite reverse;
+}
+.hero-particle {
+  --radius: 118px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  border-radius: 50%;
+  background: var(--violet-bright);
+  box-shadow: 0 0 8px 2px rgba(167,139,250,0.85);
+  transform: rotate(calc(var(--i) * 45deg)) translateX(var(--radius));
+  animation: hero-particle-twinkle 2.6s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.32s);
+}
+.hero-particle:nth-child(3n) { --radius: 96px; width: 3px; height: 3px; margin: -1.5px 0 0 -1.5px; }
+.hero-particle:nth-child(3n + 1) { --radius: 132px; }
+@keyframes hero-glow-aura {
+  0%, 100% { opacity: 0.55; transform: scale(0.92); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+@keyframes hero-glow-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes hero-glow-mark {
+  0%, 100% { filter: drop-shadow(0 0 24px var(--violet-glow)); }
+  50% { filter: drop-shadow(0 0 48px rgba(167,139,250,0.7)); }
+}
+@keyframes hero-particle-twinkle {
+  0%, 100% { opacity: 0.1; transform: rotate(calc(var(--i) * 45deg)) translateX(var(--radius)) scale(0.6); }
+  50% { opacity: 1; transform: rotate(calc(var(--i) * 45deg)) translateX(var(--radius)) scale(1.4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-brand::before, .hero-brand::after, .hero-brand .brand-mark-lg, .hero-particles, .hero-particle {
+    animation: none;
+  }
+}
 .hero-wordmark {
   margin-bottom: 24px;
   filter: drop-shadow(0 4px 30px rgba(139,92,246,0.25));
