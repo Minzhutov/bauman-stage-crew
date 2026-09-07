@@ -67,12 +67,65 @@ router.get('/:id', (req, res) => {
     .map((p) => Object.assign({}, p, { user: store.find('users', p.userId) }))
     .sort((a, b) => new Date(b.awardedAt) - new Date(a.awardedAt));
 
+  const signups = store
+    .where('academySignups', (s) => s.academyId === academy.id)
+    .map((s) => Object.assign({}, s, { user: store.find('users', s.userId) }))
+    .filter((s) => s.user)
+    .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  const isSignedUp = Boolean(
+    req.currentUser && signups.some((s) => s.userId === req.currentUser.id)
+  );
+
   res.render('academies/detail', {
     title: academy.title,
     academy: withSpeakerInfo(academy),
     pointsAwards,
+    signups,
+    isSignedUp,
     allUsers: store.all('users').sort((a, b) => a.fullName.localeCompare(b.fullName, 'ru')),
   });
+});
+
+router.post('/:id/signup', requireAuth, (req, res) => {
+  const academy = store.find('academies', req.params.id);
+  if (!academy) {
+    req.flash('error', 'Лекция не найдена.');
+    return res.redirect('/academies');
+  }
+  const already = store.where(
+    'academySignups',
+    (s) => s.academyId === academy.id && s.userId === req.currentUser.id
+  )[0];
+  if (already) {
+    req.flash('error', 'Вы уже записаны на эту лекцию.');
+    return res.redirect(`/academies/${academy.id}`);
+  }
+  store.insert('academySignups', {
+    academyId: academy.id,
+    userId: req.currentUser.id,
+    createdAt: new Date().toISOString(),
+  });
+  req.flash('success', 'Вы записались на лекцию.');
+  res.redirect(`/academies/${academy.id}`);
+});
+
+router.delete('/:id/signup', requireAuth, (req, res) => {
+  const academy = store.find('academies', req.params.id);
+  if (!academy) {
+    req.flash('error', 'Лекция не найдена.');
+    return res.redirect('/academies');
+  }
+  const signup = store.where(
+    'academySignups',
+    (s) => s.academyId === academy.id && s.userId === req.currentUser.id
+  )[0];
+  if (!signup) {
+    req.flash('error', 'Вы не были записаны на эту лекцию.');
+    return res.redirect(`/academies/${academy.id}`);
+  }
+  store.remove('academySignups', signup.id);
+  req.flash('success', 'Вы отписались от лекции.');
+  res.redirect(`/academies/${academy.id}`);
 });
 
 router.get('/:id/edit', requireAuth, requireStaff, (req, res) => {
@@ -125,6 +178,7 @@ router.delete('/:id', requireAuth, requireStaff, (req, res) => {
     req.flash('error', 'Лекция не найдена.');
     return res.redirect('/academies');
   }
+  store.removeWhere('academySignups', (s) => s.academyId === academy.id);
   store.remove('academies', academy.id);
   req.flash('success', 'Лекция удалена.');
   res.redirect('/academies');

@@ -137,6 +137,28 @@
         <% } %>
       </div>
 
+      <!-- Академии -->
+      <div class="panel">
+        <div class="panel-title">Академии</div>
+        <% if (!profile.academies.length) { %>
+          <p class="text-faint">Пока нет записей на лекции.</p>
+        <% } else { %>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <% profile.academies.forEach(function(a){ %>
+              <a href="/academies/<%= a.academy.id %>" class="card card-link" style="display:flex; justify-content:space-between; align-items:center; padding:14px 16px;">
+                <span>
+                  <strong style="color:var(--text);"><%= a.academy.title %></strong>
+                  <div class="text-faint" style="font-size:12px;"><%= a.academy.room %> · <%= h.formatDateTime(a.academy.startsAt) %></div>
+                </span>
+                <span class="badge <%= a.pointsAwarded !== null ? 'badge-done' : 'badge-planned' %>">
+                  <%= a.pointsAwarded !== null ? 'пройдено (+' + a.pointsAwarded + ')' : 'записан' %>
+                </span>
+              </a>
+            <% }); %>
+          </div>
+        <% } %>
+      </div>
+
       <!-- История баллов -->
       <div class="panel">
         <div class="panel-title">История баллов</div>

@@ -43,6 +43,7 @@ function loadProfileData(userId) {
     topAchievements: domain.topAchievements(user.id, 6),
     achievementProgress: domain.achievementProgress(user.id),
     signups: domain.userSignups(user.id),
+    academies: domain.userAcademies(user.id),
     stats: {
       eventsCompleted: domain.userEventsCompletedCount(user.id),
       academiesAttended: domain.userAcademiesAttendedCount(user.id),

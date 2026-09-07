@@ -10,6 +10,7 @@
         <span class="pill">🕒 <%= h.formatDateTime(academy.startsAt) %> → <%= h.formatTime(academy.endsAt) %></span>
         <span class="pill">🏫 <%= academy.room %></span>
         <% if (academy.speaker) { %><span class="pill">🎤 <%= academy.speaker %></span><% } %>
+        <span class="pill">👥 Записалось: <%= signups.length %></span>
       </div>
     </div>
     <% if (auth.isStaff(currentUser)) { %>
@@ -30,6 +31,32 @@
       <p class="text-faint">Описание не указано.</p>
     <% } %>
     <p class="text-faint" style="font-size:12px; margin-top:12px;">Опубликовал: <%= academy.creator ? academy.creator.fullName : '—' %></p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">Участники</div>
+    <% if (!currentUser) { %>
+      <p class="text-faint" style="margin-bottom:16px;">Войдите, чтобы записаться на лекцию.</p>
+      <a href="/login" class="btn btn-primary btn-block" style="margin-bottom:16px;">Войти</a>
+    <% } else if (isSignedUp) { %>
+      <form action="/academies/<%= academy.id %>/signup?_method=DELETE" method="POST" data-confirm="Отписаться от лекции?" style="margin-bottom:16px;">
+        <button type="submit" class="btn btn-small btn-danger">Отписаться от лекции</button>
+      </form>
+    <% } else { %>
+      <form action="/academies/<%= academy.id %>/signup" method="POST" style="margin-bottom:16px;">
+        <button type="submit" class="btn btn-small btn-primary">Записаться на лекцию</button>
+      </form>
+    <% } %>
+
+    <% if (!signups.length) { %>
+      <p class="text-faint">Пока никто не записался.</p>
+    <% } else { %>
+      <div class="pill-group">
+        <% signups.forEach(function(s){ %>
+          <a href="/profile/<%= s.user.id %>" class="pill" style="color:var(--text);"><%= s.user.fullName %></a>
+        <% }); %>
+      </div>
+    <% } %>
   </div>
 
   <div class="panel">
