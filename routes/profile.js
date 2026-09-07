@@ -6,6 +6,8 @@ const store = require('../lib/store');
 const domain = require('../lib/domain');
 const { requireAuth, requireAdmin, requireStaff, isStaff } = require('../lib/auth');
 const { imageUpload } = require('../lib/uploads');
+const { renderEventsPdf } = require('../lib/pdf');
+const format = require('../lib/format');
 
 const router = express.Router();
 
@@ -14,6 +16,15 @@ const avatarUpload = imageUpload(AVATAR_DIR, { maxSizeMB: 3 });
 
 function canManage(req, user) {
   return req.currentUser.id === user.id || req.currentUser.role === 'admin';
+}
+
+function canViewProfile(req, user) {
+  return req.currentUser.id === user.id || isStaff(req.currentUser);
+}
+
+function parseTelegram(raw) {
+  const trimmed = (raw || '').trim().replace(/^@/, '').replace(/^https?:\/\/t\.me\//i, '');
+  return trimmed;
 }
 
 router.get('/', requireAuth, (req, res) => {
@@ -48,7 +59,7 @@ router.get('/:id', requireAuth, (req, res) => {
   const isOwner = req.currentUser.id === data.user.id;
   const isAdmin = req.currentUser.role === 'admin';
   const staff = isStaff(req.currentUser);
-  if (!isOwner && !staff) {
+  if (!canViewProfile(req, data.user)) {
     req.flash('error', 'Профиль доступен только владельцу, администраторам и техническим директорам.');
     return res.redirect('/leaderboard');
   }
@@ -63,6 +74,28 @@ router.get('/:id', requireAuth, (req, res) => {
   });
 });
 
+router.get('/:id/events.pdf', requireAuth, (req, res) => {
+  const user = store.find('users', req.params.id);
+  if (!user) {
+    req.flash('error', 'Пользователь не найден.');
+    return res.redirect('/leaderboard');
+  }
+  if (!canViewProfile(req, user)) {
+    req.flash('error', 'Недостаточно прав.');
+    return res.redirect('/leaderboard');
+  }
+  const rows = domain.userSignups(user.id).map((s) => {
+    const venue = s.event.venueId ? store.find('venues', s.event.venueId) : null;
+    return {
+      date: format.formatDate(s.event.startsAt),
+      title: s.event.title,
+      venue: venue ? venue.name : '',
+      position: s.position ? s.position.name : '',
+    };
+  });
+  renderEventsPdf(res, { user, rows });
+});
+
 router.put('/:id', requireAuth, (req, res) => {
   const user = store.find('users', req.params.id);
   if (!user) {
@@ -75,7 +108,7 @@ router.put('/:id', requireAuth, (req, res) => {
     req.flash('error', 'Недостаточно прав.');
     return res.redirect('/leaderboard');
   }
-  const { fullName, phone, studyGroup, bio } = req.body;
+  const { fullName, phone, studyGroup, bio, telegram } = req.body;
   if (!fullName || !fullName.trim()) {
     req.flash('error', 'Имя не может быть пустым.');
     return res.redirect(`/profile/${user.id}`);
@@ -89,6 +122,7 @@ router.put('/:id', requireAuth, (req, res) => {
     phone: (phone || '').trim(),
     studyGroup: studyGroup.trim(),
     bio: (bio || '').trim(),
+    telegram: parseTelegram(telegram),
   });
   req.flash('success', 'Контактные данные обновлены.');
   res.redirect(`/profile/${user.id}`);

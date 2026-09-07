@@ -24,6 +24,7 @@
     "express-session": "^1.18.0",
     "method-override": "^3.0.0",
     "multer": "^2.3.0",
-    "nodemailer": "^10.0.0"
+    "nodemailer": "^10.0.0",
+    "pdfkit": "^0.20.2"
   }
 }

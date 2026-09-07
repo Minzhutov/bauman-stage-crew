@@ -91,9 +91,13 @@
                 <input type="tel" id="phone" name="phone" value="<%= profile.user.phone || '' %>">
               </div>
               <div class="field">
-                <label>Email</label>
-                <input type="text" value="<%= profile.user.email %>" disabled style="opacity:.6;">
+                <label for="telegram">Telegram</label>
+                <input type="text" id="telegram" name="telegram" value="<%= profile.user.telegram || '' %>" placeholder="@username">
               </div>
+            </div>
+            <div class="field">
+              <label>Email</label>
+              <input type="text" value="<%= profile.user.email %>" disabled style="opacity:.6;">
             </div>
             <div class="field">
               <label for="bio">О себе</label>
@@ -105,13 +109,17 @@
           <p><strong>Email:</strong> <%= profile.user.email %></p>
           <p><strong>Учебная группа:</strong> <%= profile.user.studyGroup || '—' %></p>
           <p><strong>Телефон:</strong> <%= profile.user.phone || '—' %></p>
+          <p><strong>Telegram:</strong> <% if (profile.user.telegram) { %><a href="https://t.me/<%= profile.user.telegram %>" target="_blank" rel="noopener" style="color:var(--violet-bright);">@<%= profile.user.telegram %></a><% } else { %>—<% } %></p>
           <% if (profile.user.bio) { %><p><%= profile.user.bio %></p><% } %>
         <% } %>
       </div>
 
       <!-- Мероприятия -->
       <div class="panel">
-        <div class="panel-title">Мероприятия</div>
+        <div class="panel-title">
+          <span>Мероприятия</span>
+          <a href="/profile/<%= profile.user.id %>/events.pdf" class="btn btn-small" style="text-transform:none; letter-spacing:0; font-weight:600;">⇩ Выгрузить список мероприятий</a>
+        </div>
         <% if (!profile.signups.length) { %>
           <p class="text-faint">Пока нет заявок на мероприятия.</p>
         <% } else { %>
