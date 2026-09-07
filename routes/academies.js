@@ -2,7 +2,7 @@
 const express = require('express');
 const store = require('../lib/store');
 const domain = require('../lib/domain');
-const { requireAuth, requireAdmin } = require('../lib/auth');
+const { requireAuth, requireStaff } = require('../lib/auth');
 
 const router = express.Router();
 
@@ -18,11 +18,11 @@ router.get('/', (req, res) => {
   res.render('academies/list', { title: 'Академии', academies });
 });
 
-router.get('/new', requireAuth, requireAdmin, (req, res) => {
+router.get('/new', requireAuth, requireStaff, (req, res) => {
   res.render('academies/form', { title: 'Новая лекция', academy: null, form: {} });
 });
 
-router.post('/', requireAuth, requireAdmin, (req, res) => {
+router.post('/', requireAuth, requireStaff, (req, res) => {
   const { title, topic, description, room, speaker, startsAt, endsAt } = req.body;
   const errors = [];
   if (!title || !title.trim()) errors.push('Укажите тему лекции.');
@@ -75,7 +75,7 @@ router.get('/:id', (req, res) => {
   });
 });
 
-router.get('/:id/edit', requireAuth, requireAdmin, (req, res) => {
+router.get('/:id/edit', requireAuth, requireStaff, (req, res) => {
   const academy = store.find('academies', req.params.id);
   if (!academy) {
     req.flash('error', 'Лекция не найдена.');
@@ -84,7 +84,7 @@ router.get('/:id/edit', requireAuth, requireAdmin, (req, res) => {
   res.render('academies/form', { title: 'Редактирование лекции', academy, form: academy });
 });
 
-router.put('/:id', requireAuth, requireAdmin, (req, res) => {
+router.put('/:id', requireAuth, requireStaff, (req, res) => {
   const academy = store.find('academies', req.params.id);
   if (!academy) {
     req.flash('error', 'Лекция не найдена.');
@@ -119,7 +119,7 @@ router.put('/:id', requireAuth, requireAdmin, (req, res) => {
   res.redirect(`/academies/${academy.id}`);
 });
 
-router.delete('/:id', requireAuth, requireAdmin, (req, res) => {
+router.delete('/:id', requireAuth, requireStaff, (req, res) => {
   const academy = store.find('academies', req.params.id);
   if (!academy) {
     req.flash('error', 'Лекция не найдена.');
@@ -132,7 +132,7 @@ router.delete('/:id', requireAuth, requireAdmin, (req, res) => {
 
 // --- Начисление баллов по итогам лекции ---
 
-router.post('/:id/points', requireAuth, requireAdmin, (req, res) => {
+router.post('/:id/points', requireAuth, requireStaff, (req, res) => {
   const academy = store.find('academies', req.params.id);
   const user = store.find('users', req.body.userId);
   if (!academy) {

@@ -9,7 +9,8 @@ const methodOverride = require('method-override');
 
 const store = require('./lib/store');
 const { seed } = require('./lib/seed');
-const { loadCurrentUser } = require('./lib/auth');
+const auth = require('./lib/auth');
+const { loadCurrentUser } = auth;
 const format = require('./lib/format');
 const domain = require('./lib/domain');
 
@@ -47,6 +48,7 @@ app.use(loadCurrentUser);
 // Доступно во всех шаблонах без явной передачи
 app.locals.h = format;
 app.locals.domain = domain;
+app.locals.auth = auth;
 app.locals.APP_NAME = 'Bauman Stage Crew';
 app.use((req, res, next) => {
   res.locals.currentPath = req.path;

@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const store = require('../lib/store');
 const domain = require('../lib/domain');
-const { requireAuth, requireAdmin } = require('../lib/auth');
+const { requireAuth, requireAdmin, requireStaff, isStaff } = require('../lib/auth');
 const { imageUpload } = require('../lib/uploads');
 
 const router = express.Router();
@@ -32,6 +32,10 @@ function loadProfileData(userId) {
     topAchievements: domain.topAchievements(user.id, 6),
     achievementProgress: domain.achievementProgress(user.id),
     signups: domain.userSignups(user.id),
+    stats: {
+      eventsCompleted: domain.userEventsCompletedCount(user.id),
+      academiesAttended: domain.userAcademiesAttendedCount(user.id),
+    },
   };
 }
 
@@ -43,8 +47,9 @@ router.get('/:id', requireAuth, (req, res) => {
   }
   const isOwner = req.currentUser.id === data.user.id;
   const isAdmin = req.currentUser.role === 'admin';
-  if (!isOwner && !isAdmin) {
-    req.flash('error', 'Профиль доступен только владельцу и администраторам.');
+  const staff = isStaff(req.currentUser);
+  if (!isOwner && !staff) {
+    req.flash('error', 'Профиль доступен только владельцу, администраторам и техническим директорам.');
     return res.redirect('/leaderboard');
   }
   res.render('profile/show', {
@@ -52,6 +57,7 @@ router.get('/:id', requireAuth, (req, res) => {
     profile: data,
     isOwner,
     isAdmin,
+    isStaff: staff,
     allPositions: store.all('positions'),
     allAchievements: store.all('achievements'),
   });
@@ -136,7 +142,7 @@ router.delete('/:id/avatar', requireAuth, (req, res) => {
 
 // --- Админ-действия над профилем ---
 
-router.post('/:id/points', requireAuth, requireAdmin, (req, res) => {
+router.post('/:id/points', requireAuth, requireStaff, (req, res) => {
   const user = store.find('users', req.params.id);
   if (!user) {
     req.flash('error', 'Пользователь не найден.');

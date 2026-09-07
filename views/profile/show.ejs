@@ -28,12 +28,20 @@
     <div>
       <h1 style="font-size:28px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text); margin-bottom:4px;"><%= profile.user.fullName %></h1>
       <div class="pill-group">
-        <span class="<%= profile.user.role === 'admin' ? 'chip-role' : 'chip-user' %>"><%= profile.user.role === 'admin' ? 'Администратор' : 'Участник команды' %></span>
+        <span class="<%= profile.user.role === 'admin' ? 'chip-role' : profile.user.role === 'tech_director' ? 'chip-tech' : 'chip-user' %>"><%= auth.ROLE_LABELS[profile.user.role] %></span>
         <% if (profile.user.studyGroup) { %><span class="pill">🎓 <%= profile.user.studyGroup %></span><% } %>
         <span class="pill mono" style="color:var(--amber);"><%= profile.points %> баллов</span>
         <span class="pill">В команде с <%= h.formatDate(profile.user.createdAt) %></span>
       </div>
     </div>
+  </div>
+
+  <div class="stat-strip stat-strip-profile">
+    <div class="stat-tile"><div class="value mono" style="color:var(--amber);"><%= profile.points %></div><div class="label">Баллов</div></div>
+    <div class="stat-tile"><div class="value"><%= profile.stats.eventsCompleted %></div><div class="label">Мероприятий отработано</div></div>
+    <div class="stat-tile"><div class="value"><%= profile.stats.academiesAttended %></div><div class="label">Лекций Академии</div></div>
+    <div class="stat-tile"><div class="value"><%= profile.achievements.length %></div><div class="label">Ачивок получено</div></div>
+    <div class="stat-tile"><div class="value"><%= profile.positions.length %></div><div class="label">Должностей доступно</div></div>
   </div>
 
   <% if (profile.topAchievements.length) { %>
@@ -152,7 +160,7 @@
           </div>
         <% } %>
 
-        <% if (isAdmin) { %>
+        <% if (isStaff) { %>
           <form action="/profile/<%= profile.user.id %>/points" method="POST" class="field-row" style="margin-top:16px; align-items:flex-end;">
             <div class="field">
               <label for="amount">Баллы (+/-)</label>

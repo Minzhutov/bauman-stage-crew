@@ -17,15 +17,17 @@
             <td><a href="/profile/<%= row.user.id %>" style="color:var(--text); font-weight:600;"><%= row.user.fullName %></a></td>
             <td class="text-faint"><%= row.user.studyGroup || '—' %></td>
             <td class="text-faint"><%= row.user.email %></td>
-            <td><span class="<%= row.user.role === 'admin' ? 'chip-role' : 'chip-user' %>"><%= row.user.role === 'admin' ? 'Админ' : 'Участник' %></span></td>
+            <td><span class="<%= row.user.role === 'admin' ? 'chip-role' : row.user.role === 'tech_director' ? 'chip-tech' : 'chip-user' %>"><%= auth.ROLE_LABELS[row.user.role] %></span></td>
             <td class="points-cell"><%= row.points %></td>
             <td>
               <div class="btn-group">
-                <form action="/admin/users/<%= row.user.id %>/role?_method=PUT" method="POST">
-                  <input type="hidden" name="role" value="<%= row.user.role === 'admin' ? 'user' : 'admin' %>">
-                  <button type="submit" class="btn btn-small" <%= row.user.id === currentUser.id ? 'disabled' : '' %>>
-                    <%= row.user.role === 'admin' ? 'Снять права' : 'Сделать админом' %>
-                  </button>
+                <form action="/admin/users/<%= row.user.id %>/role?_method=PUT" method="POST" style="display:flex; gap:6px;">
+                  <select name="role" <%= row.user.id === currentUser.id ? 'disabled' : '' %> style="width:auto;">
+                    <option value="user" <%= row.user.role === 'user' ? 'selected' : '' %>>Участник</option>
+                    <option value="tech_director" <%= row.user.role === 'tech_director' ? 'selected' : '' %>>Тех. директор</option>
+                    <option value="admin" <%= row.user.role === 'admin' ? 'selected' : '' %>>Администратор</option>
+                  </select>
+                  <button type="submit" class="btn btn-small" <%= row.user.id === currentUser.id ? 'disabled' : '' %>>Сохранить</button>
                 </form>
                 <form action="/admin/users/<%= row.user.id %>?_method=DELETE" method="POST" data-confirm="Удалить пользователя <%= row.user.fullName %>? Это действие необратимо.">
                   <button type="submit" class="btn btn-small btn-danger" <%= row.user.id === currentUser.id ? 'disabled' : '' %>>Удалить</button>

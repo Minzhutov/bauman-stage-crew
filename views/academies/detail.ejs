@@ -12,7 +12,7 @@
         <% if (academy.speaker) { %><span class="pill">🎤 <%= academy.speaker %></span><% } %>
       </div>
     </div>
-    <% if (currentUser && currentUser.role === 'admin') { %>
+    <% if (auth.isStaff(currentUser)) { %>
       <div class="btn-group">
         <a href="/academies/<%= academy.id %>/edit" class="btn">Редактировать</a>
         <form action="/academies/<%= academy.id %>?_method=DELETE" method="POST" data-confirm="Удалить лекцию?">
@@ -35,9 +35,9 @@
   <div class="panel">
     <div class="panel-title">Баллы за лекцию</div>
     <% if (!pointsAwards.length) { %>
-      <p class="text-faint" style="margin-bottom: <%= currentUser && currentUser.role === 'admin' ? '16px' : '0' %>;">Баллы за эту лекцию ещё никому не начислены.</p>
+      <p class="text-faint" style="margin-bottom: <%= auth.isStaff(currentUser) ? '16px' : '0' %>;">Баллы за эту лекцию ещё никому не начислены.</p>
     <% } else { %>
-      <div class="table-wrap" style="margin-bottom: <%= currentUser && currentUser.role === 'admin' ? '16px' : '0' %>;">
+      <div class="table-wrap" style="margin-bottom: <%= auth.isStaff(currentUser) ? '16px' : '0' %>;">
         <table>
           <thead><tr><th>Участник</th><th>Дата</th><th>Баллы</th></tr></thead>
           <tbody>
@@ -53,7 +53,7 @@
       </div>
     <% } %>
 
-    <% if (currentUser && currentUser.role === 'admin') { %>
+    <% if (auth.isStaff(currentUser)) { %>
       <form action="/academies/<%= academy.id %>/points" method="POST" class="field-row" style="align-items:flex-end;">
         <div class="field">
           <label for="userId">Участник</label>

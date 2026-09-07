@@ -18,7 +18,7 @@
             </span>
             <span class="chip-name">
               <%= currentUser.fullName %>
-              <% if (currentUser.role === 'admin') { %><span class="role-admin"> · админ</span><% } %>
+              <% if (currentUser.role === 'admin') { %><span class="role-admin"> · админ</span><% } else if (currentUser.role === 'tech_director') { %><span class="role-admin"> · тех. директор</span><% } %>
             </span>
             <span class="points"><%= domain.userPoints(currentUser.id) %> б.</span>
           </a>

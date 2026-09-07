@@ -2,7 +2,7 @@
 const express = require('express');
 const store = require('../lib/store');
 const domain = require('../lib/domain');
-const { requireAuth, requireAdmin } = require('../lib/auth');
+const { requireAuth, requireStaff, isStaff } = require('../lib/auth');
 
 const router = express.Router();
 
@@ -47,11 +47,11 @@ router.get('/', (req, res) => {
   });
 });
 
-router.get('/new', requireAuth, requireAdmin, (req, res) => {
+router.get('/new', requireAuth, requireStaff, (req, res) => {
   res.render('events/form', eventFormLocals({ title: 'Новое мероприятие' }));
 });
 
-router.post('/', requireAuth, requireAdmin, (req, res) => {
+router.post('/', requireAuth, requireStaff, (req, res) => {
   const { title, description, venueId, startsAt, endsAt } = req.body;
   const errors = [];
   if (!title || !title.trim()) errors.push('Укажите название мероприятия.');
@@ -122,7 +122,7 @@ router.get('/:id', (req, res) => {
   });
 });
 
-router.get('/:id/edit', requireAuth, requireAdmin, (req, res) => {
+router.get('/:id/edit', requireAuth, requireStaff, (req, res) => {
   const event = store.find('events', req.params.id);
   if (!event) {
     req.flash('error', 'Мероприятие не найдено.');
@@ -136,7 +136,7 @@ router.get('/:id/edit', requireAuth, requireAdmin, (req, res) => {
   );
 });
 
-router.put('/:id', requireAuth, requireAdmin, (req, res) => {
+router.put('/:id', requireAuth, requireStaff, (req, res) => {
   const event = store.find('events', req.params.id);
   if (!event) {
     req.flash('error', 'Мероприятие не найдено.');
@@ -177,7 +177,7 @@ router.put('/:id', requireAuth, requireAdmin, (req, res) => {
   res.redirect(`/events/${event.id}`);
 });
 
-router.delete('/:id', requireAuth, requireAdmin, (req, res) => {
+router.delete('/:id', requireAuth, requireStaff, (req, res) => {
   const event = store.find('events', req.params.id);
   if (!event) {
     req.flash('error', 'Мероприятие не найдено.');
@@ -238,12 +238,12 @@ router.delete('/:id/signups/:signupId', requireAuth, (req, res) => {
     return res.redirect(`/events/${req.params.id}`);
   }
   const isOwner = signup.userId === req.currentUser.id;
-  const isAdmin = req.currentUser.role === 'admin';
-  if (!isOwner && !isAdmin) {
+  const staff = isStaff(req.currentUser);
+  if (!isOwner && !staff) {
     req.flash('error', 'Недостаточно прав для отмены этой заявки.');
     return res.redirect(`/events/${req.params.id}`);
   }
-  if (isOwner && !isAdmin && signup.status !== 'pending') {
+  if (isOwner && !staff && signup.status !== 'pending') {
     req.flash('error', 'Отменить можно только заявку в статусе ожидания.');
     return res.redirect(`/events/${req.params.id}`);
   }
@@ -252,7 +252,7 @@ router.delete('/:id/signups/:signupId', requireAuth, (req, res) => {
   res.redirect(`/events/${req.params.id}`);
 });
 
-router.put('/:id/signups/:signupId', requireAuth, requireAdmin, (req, res) => {
+router.put('/:id/signups/:signupId', requireAuth, requireStaff, (req, res) => {
   const signup = store.find('eventSignups', req.params.signupId);
   if (!signup || signup.eventId !== Number(req.params.id)) {
     req.flash('error', 'Заявка не найдена.');

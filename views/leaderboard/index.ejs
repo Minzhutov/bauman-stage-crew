@@ -35,7 +35,7 @@
           </div>
           <div style="font-size:20px; margin-bottom:4px;"><%= medal %></div>
           <h3 style="margin:0 0 2px;"><%= row.user.fullName %></h3>
-          <div class="text-faint" style="font-size:12px; margin-bottom:10px;"><%= row.user.role === 'admin' ? 'Администратор' : 'Участник команды' %></div>
+          <div class="text-faint" style="font-size:12px; margin-bottom:10px;"><%= auth.ROLE_LABELS[row.user.role] %></div>
           <div class="mono" style="font-size:22px; color:var(--amber); font-weight:700;"><%= row.points %> б.</div>
         </div>
       <% }); %>
@@ -70,7 +70,7 @@
                 <%= row.user.fullName %>
               </a>
             </td>
-            <td><span class="<%= row.user.role === 'admin' ? 'chip-role' : 'chip-user' %>"><%= row.user.role === 'admin' ? 'Админ' : 'Участник' %></span></td>
+            <td><span class="<%= row.user.role === 'admin' ? 'chip-role' : row.user.role === 'tech_director' ? 'chip-tech' : 'chip-user' %>"><%= row.user.role === 'admin' ? 'Админ' : row.user.role === 'tech_director' ? 'Тех. директор' : 'Участник' %></span></td>
             <td><%= row.achievementsCount %></td>
             <td><%= row.completedEvents %></td>
             <td class="points-cell"><%= row.points %></td>

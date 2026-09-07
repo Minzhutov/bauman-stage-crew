@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const store = require('../lib/store');
 const domain = require('../lib/domain');
-const { requireAuth, requireAdmin } = require('../lib/auth');
+const { requireAuth, requireAdmin, ROLE_LABELS } = require('../lib/auth');
 const { imageUpload } = require('../lib/uploads');
 
 const router = express.Router();
@@ -38,8 +38,8 @@ router.put('/users/:id/role', (req, res) => {
     req.flash('error', 'Пользователь не найден.');
     return res.redirect('/admin/users');
   }
-  const nextRole = req.body.role === 'admin' ? 'admin' : 'user';
-  if (user.role === 'admin' && nextRole === 'user') {
+  const nextRole = ['user', 'tech_director', 'admin'].includes(req.body.role) ? req.body.role : 'user';
+  if (user.role === 'admin' && nextRole !== 'admin') {
     const adminCount = store.where('users', (u) => u.role === 'admin').length;
     if (adminCount <= 1) {
       req.flash('error', 'Нельзя понизить последнего администратора.');
@@ -47,7 +47,7 @@ router.put('/users/:id/role', (req, res) => {
     }
   }
   store.update('users', user.id, { role: nextRole });
-  req.flash('success', `Роль пользователя ${user.fullName} изменена на «${nextRole === 'admin' ? 'администратор' : 'пользователь'}».`);
+  req.flash('success', `Роль пользователя ${user.fullName} изменена на «${ROLE_LABELS[nextRole]}».`);
   res.redirect('/admin/users');
 });
 
