@@ -17,10 +17,19 @@ router.get('/', (req, res) => {
     selectedSeason = domain.activeSeason();
   }
 
-  const rows = domain.leaderboard(selectedSeason || undefined);
+  // Администраторы не соревнуются за баллы с командой — общий рейтинг
+  // строится только по участникам и техническим директорам, а админы
+  // выведены в отдельную справочную таблицу ниже.
+  const rows = domain.leaderboard(selectedSeason || undefined, {
+    includeRoles: ['user', 'tech_director'],
+  });
+  const adminRows = domain.leaderboard(selectedSeason || undefined, {
+    includeRoles: ['admin'],
+  });
   res.render('leaderboard/index', {
     title: 'Таблица лидеров',
     rows,
+    adminRows,
     seasons,
     selectedSeason,
   });
