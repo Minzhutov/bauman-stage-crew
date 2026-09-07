@@ -1,0 +1,62 @@
+<%- include('../partials/head') -%>
+<%- include('../partials/header') -%>
+
+<div class="container">
+  <div class="eyebrow">Что можно получить</div>
+  <h1 style="font-size:32px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);">Все ачивки</h1>
+  <p>
+    Полный каталог наград команды — обычные, редкие, эпические и легендарные.
+    <% if (currentUser) { %>Подсвечены уровни, которые вы уже получили; остальные ждут впереди.<% } else { %>Войдите, чтобы увидеть свой прогресс по каждой.<% } %>
+  </p>
+
+  <div class="card-grid">
+    <% achievements.forEach(function(a){ %>
+      <% var myLevel = myLevels[a.id]; var hasAny = myLevel !== undefined; var current = hasAny ? a.levels[myLevel] : a.levels[0]; var progress = myProgress[a.id]; %>
+      <div class="card">
+        <div class="card-top">
+          <span class="medal-badge rarity-<%= current.rarity %>" style="<%= hasAny ? '' : 'filter:grayscale(1); opacity:.55;' %> width:56px; height:56px; font-size:26px;">
+            <% if (current.avatarFile) { %>
+              <img src="/uploads/achievements/<%= current.avatarFile %>" alt="">
+            <% } else { %>
+              <%= current.icon %>
+            <% } %>
+          </span>
+          <div style="flex:1;">
+            <h3 style="margin-bottom:2px;"><%= a.name %></h3>
+            <% if (hasAny) { %>
+              <span class="medal-rarity rarity-<%= current.rarity %>">У вас: <%= domain.RARITY_LABELS[current.rarity] %><% if (a.levels.length > 1) { %> (ур. <%= myLevel + 1 %>)<% } %></span>
+            <% } else { %>
+              <span class="text-faint" style="font-size:11px;">Пока не получена</span>
+            <% } %>
+          </div>
+        </div>
+        <p style="font-size:13px;"><%= a.description %></p>
+
+        <div class="pill-group" style="margin-bottom:10px;">
+          <% a.levels.forEach(function(lvl, i){ %>
+            <span class="level-pill rarity-<%= lvl.rarity %> <%= hasAny && i <= myLevel ? '' : 'level-pill-locked' %>">
+              <%= lvl.icon %> <%= domain.RARITY_LABELS[lvl.rarity] %><% if (a.levels.length > 1) { %> · ур. <%= i + 1 %><% } %><% if (lvl.threshold) { %> (≥<%= lvl.threshold %>)<% } %>
+            </span>
+          <% }); %>
+        </div>
+
+        <% if (progress) { %>
+          <div class="progress-item" style="padding:0; border:none;">
+            <div class="progress-item-head">
+              <span>До «<%= domain.RARITY_LABELS[progress.nextLevel.rarity] %>»</span>
+              <span class="medal-rarity rarity-<%= progress.nextLevel.rarity %>"><%= progress.metric %>/<%= progress.nextLevel.threshold %></span>
+            </div>
+            <div class="progress"><div class="progress-fill rarity-<%= progress.nextLevel.rarity %>" style="width:<%= progress.percent %>%;"></div></div>
+          </div>
+        <% } else if (!a.autoRuleType) { %>
+          <p class="text-faint" style="font-size:11px; margin:0;">Присваивается администратором вручную.</p>
+        <% } else if (currentUser && hasAny && myLevel === a.levels.length - 1) { %>
+          <p class="text-faint" style="font-size:11px; margin:0;">Максимальный уровень достигнут 🎉</p>
+        <% } %>
+      </div>
+    <% }); %>
+    <% if (!achievements.length) { %><p class="text-faint">Каталог пуст.</p><% } %>
+  </div>
+</div>
+
+<%- include('../partials/footer') -%>

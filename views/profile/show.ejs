@@ -36,6 +36,30 @@
     </div>
   </div>
 
+  <% if (profile.topAchievements.length) { %>
+    <div class="achievement-board">
+      <div class="achievement-board-title">🏆 Доска достижений</div>
+      <div class="achievement-board-grid">
+        <% profile.topAchievements.forEach(function(ua){ %>
+          <% var lvl = ua.levelData; var tiered = ua.achievement.levels.length > 1; %>
+          <div class="medal" title="<%= ua.achievement.description || '' %>">
+            <span class="medal-badge medal-badge-board rarity-<%= lvl.rarity %>">
+              <% if (lvl.avatarFile) { %>
+                <img src="/uploads/achievements/<%= lvl.avatarFile %>" alt="">
+              <% } else { %>
+                <%= lvl.icon %>
+              <% } %>
+              <% if (!ua.awardedBy) { %><span class="medal-auto-mark" title="Начислено автоматически">⚡</span><% } %>
+              <% if (tiered) { %><span class="medal-level-mark"><%= ua.levelIndex + 1 %></span><% } %>
+            </span>
+            <span class="medal-name"><%= ua.achievement.name %></span>
+            <span class="medal-rarity rarity-<%= lvl.rarity %>"><%= domain.RARITY_LABELS[lvl.rarity] %></span>
+          </div>
+        <% }); %>
+      </div>
+    </div>
+  <% } %>
+
   <div class="layout-2col" style="margin-top:28px;">
     <div>
       <!-- Контакты -->
@@ -174,23 +198,31 @@
 
       <!-- Ачивки (медали) -->
       <div class="panel">
-        <div class="panel-title">Ачивки</div>
+        <div class="panel-title" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+          <span>Ачивки</span>
+          <a href="/achievements" class="btn btn-small" style="text-transform:none; letter-spacing:0; font-weight:600;">Посмотреть все ачивки</a>
+        </div>
         <% if (!profile.achievements.length) { %>
           <p class="text-faint" style="margin-bottom: <%= isAdmin ? '16px' : '0' %>;">Ачивок пока нет.</p>
         <% } else { %>
-          <div class="medal-grid" style="margin-bottom: <%= isAdmin ? '18px' : '0' %>;">
-            <% profile.achievements.forEach(function(ua){ %>
-              <div class="medal" title="<%= ua.achievement.description || '' %>">
-                <span class="medal-badge">
-                  <% if (ua.achievement.avatarFile) { %>
-                    <img src="/uploads/achievements/<%= ua.achievement.avatarFile %>" alt="">
+          <% var collapseLimit = 4; %>
+          <div class="medal-grid" id="achievements-grid" style="margin-bottom:12px;">
+            <% profile.achievements.forEach(function(ua, i){ %>
+              <% var lvl = ua.levelData; var tiered = ua.achievement.levels.length > 1; %>
+              <div class="medal <%= i >= collapseLimit ? 'medal-collapsed' : '' %>" title="<%= ua.achievement.description || '' %>">
+                <span class="medal-badge rarity-<%= lvl.rarity %>">
+                  <% if (lvl.avatarFile) { %>
+                    <img src="/uploads/achievements/<%= lvl.avatarFile %>" alt="">
                   <% } else { %>
-                    <%= ua.achievement.icon %>
+                    <%= lvl.icon %>
                   <% } %>
                   <% if (!ua.awardedBy) { %><span class="medal-auto-mark" title="Начислено автоматически">⚡</span><% } %>
+                  <% if (tiered) { %><span class="medal-level-mark"><%= ua.levelIndex + 1 %></span><% } %>
                 </span>
                 <span class="medal-name"><%= ua.achievement.name %></span>
+                <span class="medal-rarity rarity-<%= lvl.rarity %>"><%= domain.RARITY_LABELS[lvl.rarity] %></span>
                 <span class="medal-date"><%= h.formatDate(ua.awardedAt) %></span>
+                <% if (ua.comment) { %><span class="medal-comment">«<%= ua.comment %>»</span><% } %>
                 <% if (isAdmin) { %>
                   <form action="/profile/<%= profile.user.id %>/achievements/<%= ua.id %>?_method=DELETE" method="POST" data-confirm="Отозвать ачивку «<%= ua.achievement.name %>»?">
                     <button type="submit" class="medal-revoke">отозвать</button>
@@ -199,17 +231,43 @@
               </div>
             <% }); %>
           </div>
+          <% if (profile.achievements.length > collapseLimit) { %>
+            <button type="button" class="btn btn-small" data-show-all-target="#achievements-grid" style="margin-bottom: <%= isAdmin ? '18px' : '0' %>;">Показать все (<%= profile.achievements.length %>)</button>
+          <% } %>
+        <% } %>
+
+        <% if (profile.achievementProgress.length) { %>
+          <div style="margin-bottom: <%= isAdmin ? '18px' : '0' %>;">
+            <% profile.achievementProgress.slice(0, 4).forEach(function(p){ %>
+              <div class="progress-item">
+                <div class="progress-item-head">
+                  <span><span class="icon"><%= p.nextLevel.icon %></span> <%= p.achievement.name %></span>
+                  <span class="medal-rarity rarity-<%= p.nextLevel.rarity %>">до «<%= domain.RARITY_LABELS[p.nextLevel.rarity] %>»: <%= p.metric %>/<%= p.nextLevel.threshold %></span>
+                </div>
+                <div class="progress"><div class="progress-fill rarity-<%= p.nextLevel.rarity %>" style="width:<%= p.percent %>%;"></div></div>
+              </div>
+            <% }); %>
+          </div>
         <% } %>
 
         <% if (isAdmin) { %>
+          <script type="application/json" id="achievements-data"><%- JSON.stringify(allAchievements.map(function(a){
+            return { id: a.id, levels: a.levels.map(function(l, i){ return { index: i, rarity: l.rarity, label: domain.RARITY_LABELS[l.rarity] + (a.levels.length > 1 ? ' (ур. ' + (i+1) + ')' : '') }; }) };
+          })) %></script>
           <form action="/profile/<%= profile.user.id %>/achievements" method="POST" class="stack">
-            <div class="field">
-              <label for="achievementId">Ачивка</label>
-              <select id="achievementId" name="achievementId" required>
-                <% allAchievements.forEach(function(a){ %>
-                  <option value="<%= a.id %>"><%= a.icon %> <%= a.name %><%= a.autoRuleType ? ' (авто)' : '' %></option>
-                <% }); %>
-              </select>
+            <div class="field-row">
+              <div class="field">
+                <label for="achievementId">Ачивка</label>
+                <select id="achievementId" name="achievementId" required>
+                  <% allAchievements.forEach(function(a){ %>
+                    <option value="<%= a.id %>"><%= a.levels[0].icon %> <%= a.name %><%= a.autoRuleType ? ' (авто)' : '' %></option>
+                  <% }); %>
+                </select>
+              </div>
+              <div class="field">
+                <label for="level">Уровень</label>
+                <select id="level" name="level"></select>
+              </div>
             </div>
             <div class="field">
               <label for="comment">Комментарий</label>

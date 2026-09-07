@@ -29,6 +29,8 @@ function loadProfileData(userId) {
     pointsHistory: domain.userPointsHistory(user.id),
     positions: domain.userPositions(user.id),
     achievements: domain.userAchievements(user.id),
+    topAchievements: domain.topAchievements(user.id, 6),
+    achievementProgress: domain.achievementProgress(user.id),
     signups: domain.userSignups(user.id),
   };
 }
@@ -175,14 +177,28 @@ router.post('/:id/achievements', requireAuth, requireAdmin, (req, res) => {
     req.flash('error', 'Пользователь или ачивка не найдены.');
     return res.redirect(`/profile/${req.params.id}`);
   }
-  store.insert('userAchievements', {
-    userId: user.id,
-    achievementId: achievement.id,
-    awardedBy: req.currentUser.id,
-    awardedAt: new Date().toISOString(),
-    comment: (req.body.comment || '').trim(),
-  });
-  req.flash('success', `Ачивка «${achievement.name}» присвоена пользователю ${user.fullName}.`);
+  const levelIndex = Math.min(Math.max(parseInt(req.body.level, 10) || 0, 0), achievement.levels.length - 1);
+  const existing = store.where('userAchievements', (ua) => ua.userId === user.id && ua.achievementId === achievement.id)[0];
+  const comment = (req.body.comment || '').trim();
+  if (existing) {
+    store.update('userAchievements', existing.id, {
+      level: levelIndex,
+      awardedBy: req.currentUser.id,
+      awardedAt: new Date().toISOString(),
+      comment,
+    });
+  } else {
+    store.insert('userAchievements', {
+      userId: user.id,
+      achievementId: achievement.id,
+      level: levelIndex,
+      awardedBy: req.currentUser.id,
+      awardedAt: new Date().toISOString(),
+      comment,
+    });
+  }
+  const levelLabel = achievement.levels.length > 1 ? ` (уровень ${levelIndex + 1}: ${domain.RARITY_LABELS[achievement.levels[levelIndex].rarity]})` : '';
+  req.flash('success', `Ачивка «${achievement.name}»${levelLabel} присвоена пользователю ${user.fullName}.`);
   res.redirect(`/profile/${user.id}`);
 });
 

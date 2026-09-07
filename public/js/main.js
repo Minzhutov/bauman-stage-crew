@@ -12,6 +12,19 @@
     }
   });
 
+  // Кнопка "Показать все" — разворачивает свёрнутые по умолчанию карточки
+  document.querySelectorAll('[data-show-all-target]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var target = document.querySelector(btn.getAttribute('data-show-all-target'));
+      if (target) {
+        target.querySelectorAll('.medal-collapsed').forEach(function (el) {
+          el.classList.remove('medal-collapsed');
+        });
+      }
+      btn.remove();
+    });
+  });
+
   // Автоскрытие флеш-уведомлений
   document.querySelectorAll('.flash').forEach(function (el) {
     setTimeout(function () {
@@ -37,6 +50,67 @@
       if (input.files.length) input.form.submit();
     });
   });
+
+  // Форма ачивки: динамическое добавление/удаление уровней
+  (function () {
+    var container = document.getElementById('levels-container');
+    var template = document.getElementById('level-row-template');
+    var addBtn = document.getElementById('add-level-btn');
+    if (!container || !template) return;
+
+    function renumber() {
+      var rows = container.querySelectorAll('.level-row');
+      rows.forEach(function (row, i) {
+        row.querySelectorAll('[data-field]').forEach(function (el) {
+          el.name = 'level_' + i + '_' + el.getAttribute('data-field');
+        });
+        var title = row.querySelector('.level-row-title');
+        if (title) title.textContent = 'Уровень ' + (i + 1);
+      });
+      var removeBtns = container.querySelectorAll('.level-row-remove');
+      removeBtns.forEach(function (btn) {
+        btn.style.visibility = rows.length > 1 ? 'visible' : 'hidden';
+      });
+    }
+
+    if (addBtn) {
+      addBtn.addEventListener('click', function () {
+        if (container.querySelectorAll('.level-row').length >= 5) return;
+        container.appendChild(template.content.cloneNode(true));
+        renumber();
+      });
+    }
+    container.addEventListener('click', function (e) {
+      if (!e.target.classList.contains('level-row-remove')) return;
+      var rows = container.querySelectorAll('.level-row');
+      if (rows.length <= 1) return;
+      var row = e.target.closest('.level-row');
+      if (row) { row.remove(); renumber(); }
+    });
+    renumber();
+  })();
+
+  // Профиль: список уровней ачивки при ручном присвоении
+  (function () {
+    var achievementSelect = document.getElementById('achievementId');
+    var levelSelect = document.getElementById('level');
+    var dataEl = document.getElementById('achievements-data');
+    if (!achievementSelect || !levelSelect || !dataEl) return;
+    var byId = {};
+    JSON.parse(dataEl.textContent || '[]').forEach(function (a) { byId[a.id] = a.levels; });
+    function sync() {
+      var levels = byId[achievementSelect.value] || [];
+      levelSelect.innerHTML = '';
+      levels.forEach(function (l) {
+        var opt = document.createElement('option');
+        opt.value = l.index;
+        opt.textContent = l.label;
+        levelSelect.appendChild(opt);
+      });
+    }
+    achievementSelect.addEventListener('change', sync);
+    sync();
+  })();
 
   // Живой предпросмотр числового поля "нужно человек" в форме мероприятия
   document.querySelectorAll('.requirement-item input[type=number]').forEach(function (input) {

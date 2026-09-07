@@ -19,12 +19,7 @@ const avatarUpload = imageUpload(AVATAR_DIR);
 const AUTO_RULE_TYPES = Object.keys(domain.AUTO_RULES);
 
 function parseAutoRule(body) {
-  const type = AUTO_RULE_TYPES.includes(body.autoRuleType) ? body.autoRuleType : null;
-  const threshold = parseInt(body.autoRuleThreshold, 10);
-  if (!type || !Number.isFinite(threshold) || threshold < 1) {
-    return { autoRuleType: null, autoRuleThreshold: null };
-  }
-  return { autoRuleType: type, autoRuleThreshold: threshold };
+  return { autoRuleType: AUTO_RULE_TYPES.includes(body.autoRuleType) ? body.autoRuleType : null };
 }
 
 // --- Пользователи ---
@@ -213,6 +208,70 @@ router.delete('/seasons/:id', (req, res) => {
 
 // --- Ачивки ---
 
+const RARITY_SET = new Set(domain.RARITY_ORDER);
+const MAX_LEVELS = 5;
+
+// Уровни приходят плоскими полями level_0_rarity/level_0_threshold/level_0_icon
+// (+ файл level_0_avatar) — та же причина, что и с positions_<id> в форме
+// мероприятия: express/qs теряет числовые id при парсинге bracket-нотации.
+// Никаких fs-операций здесь — только вычисляем итоговые уровни и что удалить
+// с диска в каждом из двух исходов (сохранили / откатили), чтобы при ошибке
+// валидации не потерять одновременно и старый, и новый файл уровня.
+function parseLevels(body, files, existingLevels) {
+  const levels = [];
+  const filesToDeleteOnCommit = [];
+  const filesToDeleteOnAbort = [];
+  for (let i = 0; i < MAX_LEVELS; i += 1) {
+    const rarityRaw = body[`level_${i}_rarity`];
+    if (rarityRaw === undefined) break;
+    const rarity = RARITY_SET.has(rarityRaw) ? rarityRaw : 'common';
+    const thresholdRaw = body[`level_${i}_threshold`];
+    const threshold = thresholdRaw !== undefined && thresholdRaw !== '' ? parseInt(thresholdRaw, 10) : null;
+    const icon = (body[`level_${i}_icon`] || '🏅').trim().slice(0, 4) || '🏅';
+    const file = (files || []).find((f) => f.fieldname === `level_${i}_avatar`);
+    const removeAvatar = body[`level_${i}_removeAvatar`] === '1';
+    const existing = (existingLevels || [])[i];
+    let avatarFile = existing ? existing.avatarFile : null;
+    if (file) {
+      if (existing && existing.avatarFile) filesToDeleteOnCommit.push(path.join(AVATAR_DIR, existing.avatarFile));
+      filesToDeleteOnAbort.push(file.path);
+      avatarFile = file.filename;
+    } else if (removeAvatar && avatarFile) {
+      filesToDeleteOnCommit.push(path.join(AVATAR_DIR, avatarFile));
+      avatarFile = null;
+    }
+    levels.push({ rarity, threshold: Number.isFinite(threshold) ? threshold : null, icon, avatarFile });
+  }
+  return { levels, filesToDeleteOnCommit, filesToDeleteOnAbort };
+}
+
+function validateLevels(levels, autoRuleType) {
+  const errors = [];
+  if (!levels.length) {
+    errors.push('Добавьте хотя бы один уровень.');
+    return errors;
+  }
+  if (autoRuleType) {
+    let prevThreshold = 0;
+    levels.forEach((lvl, i) => {
+      if (!Number.isFinite(lvl.threshold) || lvl.threshold < 1) {
+        errors.push(`Уровень ${i + 1}: укажите порог (целое число ≥ 1).`);
+      } else if (lvl.threshold <= prevThreshold) {
+        errors.push(`Уровень ${i + 1}: порог должен быть больше, чем у предыдущего уровня.`);
+      } else {
+        prevThreshold = lvl.threshold;
+      }
+    });
+  }
+  return errors;
+}
+
+function unlinkLevelAvatars(levels) {
+  (levels || []).forEach((lvl) => {
+    if (lvl.avatarFile) fs.unlink(path.join(AVATAR_DIR, lvl.avatarFile), () => {});
+  });
+}
+
 router.get('/achievements', (req, res) => {
   const achievements = store.all('achievements').map((a) => ({
     achievement: a,
@@ -221,32 +280,60 @@ router.get('/achievements', (req, res) => {
   res.render('admin/achievements', {
     title: 'Ачивки',
     achievements,
-    form: {},
+    achievement: null,
     autoRuleTypes: domain.AUTO_RULES,
+    rarityOrder: domain.RARITY_ORDER,
+    rarityLabels: domain.RARITY_LABELS,
+  });
+});
+
+router.get('/achievements/:id/edit', (req, res) => {
+  const achievement = store.find('achievements', req.params.id);
+  if (!achievement) {
+    req.flash('error', 'Ачивка не найдена.');
+    return res.redirect('/admin/achievements');
+  }
+  const achievements = store.all('achievements').map((a) => ({
+    achievement: a,
+    awardedCount: store.where('userAchievements', (ua) => ua.achievementId === a.id).length,
+  }));
+  res.render('admin/achievements', {
+    title: 'Редактирование ачивки',
+    achievements,
+    achievement,
+    autoRuleTypes: domain.AUTO_RULES,
+    rarityOrder: domain.RARITY_ORDER,
+    rarityLabels: domain.RARITY_LABELS,
   });
 });
 
 router.post('/achievements', (req, res) => {
-  avatarUpload.single('avatar')(req, res, (err) => {
+  avatarUpload.any()(req, res, (err) => {
     if (err) {
-      req.flash('error', err.message || 'Не удалось загрузить аватарку.');
+      req.flash('error', err.message || 'Не удалось загрузить файлы.');
       return res.redirect('/admin/achievements');
     }
-    const { icon, name, description } = req.body;
+    const { name, description } = req.body;
+    const { autoRuleType } = parseAutoRule(req.body);
+    const { levels, filesToDeleteOnAbort } = parseLevels(req.body, req.files, null);
+
     if (!name || !name.trim()) {
-      if (req.file) fs.unlink(req.file.path, () => {});
+      filesToDeleteOnAbort.forEach((f) => fs.unlink(f, () => {}));
       req.flash('error', 'Укажите название ачивки.');
       return res.redirect('/admin/achievements');
     }
+    const errors = validateLevels(levels, autoRuleType);
+    if (errors.length) {
+      filesToDeleteOnAbort.forEach((f) => fs.unlink(f, () => {}));
+      errors.forEach((e) => req.flash('error', e));
+      return res.redirect('/admin/achievements');
+    }
 
-    const { autoRuleType, autoRuleThreshold } = parseAutoRule(req.body);
     const achievement = store.insert('achievements', {
-      icon: (icon || '🏅').trim(),
       name: name.trim(),
       description: (description || '').trim(),
-      avatarFile: req.file ? req.file.filename : null,
       autoRuleType,
-      autoRuleThreshold,
+      levels,
     });
 
     let extra = '';
@@ -261,15 +348,65 @@ router.post('/achievements', (req, res) => {
   });
 });
 
+router.put('/achievements/:id', (req, res) => {
+  const achievement = store.find('achievements', req.params.id);
+  if (!achievement) {
+    req.flash('error', 'Ачивка не найдена.');
+    return res.redirect('/admin/achievements');
+  }
+  avatarUpload.any()(req, res, (err) => {
+    if (err) {
+      req.flash('error', err.message || 'Не удалось загрузить файлы.');
+      return res.redirect(`/admin/achievements/${achievement.id}/edit`);
+    }
+    const { name, description } = req.body;
+    const { autoRuleType } = parseAutoRule(req.body);
+    const { levels, filesToDeleteOnCommit, filesToDeleteOnAbort } = parseLevels(req.body, req.files, achievement.levels);
+
+    if (!name || !name.trim()) {
+      filesToDeleteOnAbort.forEach((f) => fs.unlink(f, () => {}));
+      req.flash('error', 'Укажите название ачивки.');
+      return res.redirect(`/admin/achievements/${achievement.id}/edit`);
+    }
+    const errors = validateLevels(levels, autoRuleType);
+    if (errors.length) {
+      filesToDeleteOnAbort.forEach((f) => fs.unlink(f, () => {}));
+      errors.forEach((e) => req.flash('error', e));
+      return res.redirect(`/admin/achievements/${achievement.id}/edit`);
+    }
+
+    // старые файлы уровней, замененных/убранных при редактировании — подчищаем
+    filesToDeleteOnCommit.forEach((f) => fs.unlink(f, () => {}));
+    (achievement.levels || []).slice(levels.length).forEach((lvl) => {
+      if (lvl.avatarFile) fs.unlink(path.join(AVATAR_DIR, lvl.avatarFile), () => {});
+    });
+
+    store.update('achievements', achievement.id, {
+      name: name.trim(),
+      description: (description || '').trim(),
+      autoRuleType,
+      levels,
+    });
+
+    let extra = '';
+    if (autoRuleType) {
+      const backAwarded = domain.evaluateAchievementForAllUsers(store.find('achievements', achievement.id));
+      if (backAwarded.length) {
+        extra = ` Пересчитано и повышено/начислено ${backAwarded.length} участник(ам).`;
+      }
+    }
+    req.flash('success', `Ачивка «${name.trim()}» обновлена.${extra}`);
+    res.redirect('/admin/achievements');
+  });
+});
+
 router.delete('/achievements/:id', (req, res) => {
   const achievement = store.find('achievements', req.params.id);
   if (!achievement) {
     req.flash('error', 'Ачивка не найдена.');
     return res.redirect('/admin/achievements');
   }
-  if (achievement.avatarFile) {
-    fs.unlink(path.join(AVATAR_DIR, achievement.avatarFile), () => {});
-  }
+  unlinkLevelAvatars(achievement.levels);
   store.removeWhere('userAchievements', (ua) => ua.achievementId === achievement.id);
   store.remove('achievements', achievement.id);
   req.flash('success', `Ачивка «${achievement.name}» удалена из каталога.`);

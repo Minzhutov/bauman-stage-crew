@@ -67,6 +67,7 @@ app.use('/events', require('./routes/events'));
 app.use('/academies', require('./routes/academies'));
 app.use('/manuals', require('./routes/manuals'));
 app.use('/leaderboard', require('./routes/leaderboard'));
+app.use('/achievements', require('./routes/achievements'));
 app.use('/profile', require('./routes/profile'));
 app.use('/admin', require('./routes/admin'));
 
