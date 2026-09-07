@@ -5,6 +5,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const multer = require('multer');
 const store = require('../lib/store');
+const domain = require('../lib/domain');
 const { requireAuth, requireAdmin } = require('../lib/auth');
 
 const router = express.Router();
@@ -39,12 +40,50 @@ function withUploader(m) {
   return Object.assign({}, m, { uploader: store.find('users', m.uploadedBy) });
 }
 
+function parseCategory(raw) {
+  return domain.POSITION_CATEGORY_LABELS[raw] ? raw : 'other';
+}
+
+// Ссылки на видео — по одной в строке; строгую проверку на валидный URL
+// не делаем (формой пользуются только админы), просто чистим пробелы и пустые строки.
+function parseVideoLinks(raw) {
+  return (raw || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
 router.get('/', (req, res) => {
-  const manuals = store
+  const { category } = req.query;
+  let manuals = store
     .all('manuals')
     .map(withUploader)
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  res.render('manuals/list', { title: 'Мануалы', manuals });
+  if (category && category !== 'all') {
+    manuals = manuals.filter((m) => (m.category || 'other') === category);
+  }
+  const categoryCounts = {};
+  store.all('manuals').forEach((m) => {
+    const key = m.category || 'other';
+    categoryCounts[key] = (categoryCounts[key] || 0) + 1;
+  });
+  res.render('manuals/list', {
+    title: 'Мануалы',
+    manuals,
+    categoryFilter: category && category !== 'all' ? category : '',
+    categoryCounts,
+    categoryOrder: domain.POSITION_CATEGORY_ORDER,
+    categoryLabels: domain.POSITION_CATEGORY_LABELS,
+  });
+});
+
+router.get('/new', requireAuth, requireAdmin, (req, res) => {
+  res.render('manuals/form', {
+    title: 'Новый мануал',
+    form: {},
+    categoryOrder: domain.POSITION_CATEGORY_ORDER,
+    categoryLabels: domain.POSITION_CATEGORY_LABELS,
+  });
 });
 
 router.post('/', requireAuth, requireAdmin, (req, res) => {
@@ -53,31 +92,55 @@ router.post('/', requireAuth, requireAdmin, (req, res) => {
       req.flash('error', err.message || 'Не удалось загрузить файл.');
       return res.redirect('/manuals');
     }
-    const { title, description } = req.body;
-    if (!req.file) {
-      req.flash('error', 'Выберите файл для загрузки.');
-      return res.redirect('/manuals');
+    const { title, description, content, videoLinks, category } = req.body;
+    const errors = [];
+    if (!title || !title.trim()) errors.push('Укажите название мануала.');
+    const links = parseVideoLinks(videoLinks);
+    const hasContent = Boolean((content || '').trim());
+    if (!req.file && !hasContent && !links.length) {
+      errors.push('Добавьте хотя бы одно: файл, подробный текст или ссылку на видео.');
     }
-    if (!title || !title.trim()) {
-      fs.unlink(req.file.path, () => {});
-      req.flash('error', 'Укажите название мануала.');
-      return res.redirect('/manuals');
+    if (errors.length) {
+      if (req.file) fs.unlink(req.file.path, () => {});
+      errors.forEach((e) => req.flash('error', e));
+      return res.status(400).render('manuals/form', {
+        title: 'Новый мануал',
+        form: req.body,
+        categoryOrder: domain.POSITION_CATEGORY_ORDER,
+        categoryLabels: domain.POSITION_CATEGORY_LABELS,
+      });
     }
 
-    store.insert('manuals', {
+    const manual = store.insert('manuals', {
       title: title.trim(),
       description: (description || '').trim(),
-      fileName: req.file.filename,
-      originalName: req.file.originalname,
-      mimeType: req.file.mimetype,
-      size: req.file.size,
+      content: (content || '').trim(),
+      videoLinks: links,
+      category: parseCategory(category),
+      fileName: req.file ? req.file.filename : null,
+      originalName: req.file ? req.file.originalname : null,
+      mimeType: req.file ? req.file.mimetype : null,
+      size: req.file ? req.file.size : null,
       uploadedBy: req.currentUser.id,
       createdAt: new Date().toISOString(),
       placeholder: false,
     });
 
-    req.flash('success', 'Мануал загружен.');
-    res.redirect('/manuals');
+    req.flash('success', 'Мануал опубликован.');
+    res.redirect(`/manuals/${manual.id}`);
+  });
+});
+
+router.get('/:id', (req, res) => {
+  const manual = store.find('manuals', req.params.id);
+  if (!manual) {
+    req.flash('error', 'Мануал не найден.');
+    return res.redirect('/manuals');
+  }
+  res.render('manuals/detail', {
+    title: manual.title,
+    manual: withUploader(manual),
+    categoryLabels: domain.POSITION_CATEGORY_LABELS,
   });
 });
 

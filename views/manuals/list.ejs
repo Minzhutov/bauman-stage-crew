@@ -2,69 +2,47 @@
 <%- include('../partials/header') -%>
 
 <div class="container">
-  <div class="eyebrow">База знаний</div>
-  <h1 style="font-size:32px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);">Мануалы</h1>
-  <p>Регламенты, инструкции и техническая документация команды.</p>
-
-  <div class="layout-2col" style="margin-top:24px;">
+  <div class="section-head">
     <div>
-      <% if (!manuals.length) { %>
-        <div class="empty"><div class="glyph">📄</div>Мануалов пока нет.</div>
-      <% } else { %>
-        <div style="display:flex; flex-direction:column; gap:12px;">
-          <% manuals.forEach(function(m){ %>
-            <div class="card" style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
-              <div>
-                <h3 style="margin-bottom:4px;"><%= m.title %></h3>
-                <% if (m.description) { %><p style="margin-bottom:6px;"><%= m.description %></p><% } %>
-                <div class="meta" style="flex-direction:row; gap:14px;">
-                  <% if (m.originalName) { %><span>📎 <%= m.originalName %></span><% } %>
-                  <% if (m.size) { %><span><%= h.formatBytes(m.size) %></span><% } %>
-                  <span>Загрузил: <%= m.uploader ? m.uploader.fullName : '—' %></span>
-                  <span><%= h.formatDate(m.createdAt) %></span>
-                </div>
-              </div>
-              <div class="btn-group">
-                <% if (m.fileName) { %>
-                  <a href="/manuals/<%= m.id %>/download" class="btn btn-small btn-primary">Скачать</a>
-                <% } else { %>
-                  <span class="badge badge-pending">пример</span>
-                <% } %>
-                <% if (currentUser && currentUser.role === 'admin') { %>
-                  <form action="/manuals/<%= m.id %>?_method=DELETE" method="POST" data-confirm="Удалить мануал?">
-                    <button type="submit" class="btn btn-small btn-danger">Удалить</button>
-                  </form>
-                <% } %>
-              </div>
-            </div>
-          <% }); %>
-        </div>
-      <% } %>
+      <div class="eyebrow">База знаний</div>
+      <h1 style="font-size:32px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);">Мануалы</h1>
+      <p>Регламенты, инструкции, видео и техническая документация команды.</p>
     </div>
-
     <% if (currentUser && currentUser.role === 'admin') { %>
-      <div class="panel">
-        <div class="panel-title">Загрузить мануал</div>
-        <form action="/manuals" method="POST" enctype="multipart/form-data" class="stack">
-          <div class="field">
-            <label for="mtitle">Название</label>
-            <input type="text" id="mtitle" name="title" required>
-          </div>
-          <div class="field">
-            <label for="mdescription">Описание</label>
-            <textarea id="mdescription" name="description" rows="3"></textarea>
-          </div>
-          <div class="field">
-            <label for="file">Файл</label>
-            <input type="file" id="file" name="file" data-filename-target="#filename-preview" required>
-            <span id="filename-preview" class="hint">Файл не выбран</span>
-          </div>
-          <p class="hint">PDF, DOC(X), XLS(X), PPT(X), TXT, RTF, ZIP, PNG/JPG — до 25 МБ.</p>
-          <button type="submit" class="btn btn-primary btn-block">Загрузить</button>
-        </form>
-      </div>
+      <a href="/manuals/new" class="btn btn-primary">+ Новый мануал</a>
     <% } %>
   </div>
+
+  <div class="btn-group" style="margin-bottom:24px; flex-wrap:wrap;">
+    <a href="/manuals" class="btn btn-small <%= categoryFilter === '' ? 'btn-primary' : '' %>">Все</a>
+    <% categoryOrder.forEach(function(key){ %>
+      <% if (categoryCounts[key]) { %>
+        <a href="/manuals?category=<%= key %>" class="btn btn-small <%= categoryFilter === key ? 'btn-primary' : '' %>"><%= categoryLabels[key] %> <span class="mono text-faint">· <%= categoryCounts[key] %></span></a>
+      <% } %>
+    <% }); %>
+  </div>
+
+  <% if (!manuals.length) { %>
+    <div class="empty"><div class="glyph">📄</div>Мануалов пока нет.</div>
+  <% } else { %>
+    <div class="card-grid">
+      <% manuals.forEach(function(m){ %>
+        <a href="/manuals/<%= m.id %>" class="card card-link">
+          <div class="card-top">
+            <h3><%= m.title %></h3>
+            <span class="badge badge-planned"><%= categoryLabels[m.category] || categoryLabels.other %></span>
+          </div>
+          <% if (m.description) { %><p style="font-size:13px; margin-bottom:10px;"><%= m.description %></p><% } %>
+          <div class="meta">
+            <% if (m.fileName) { %><span>📎 <%= m.originalName %></span><% } %>
+            <% if (m.videoLinks && m.videoLinks.length) { %><span>🎥 <%= m.videoLinks.length %> видео</span><% } %>
+            <span>Загрузил: <%= m.uploader ? m.uploader.fullName : '—' %></span>
+            <span><%= h.formatDate(m.createdAt) %></span>
+          </div>
+        </a>
+      <% }); %>
+    </div>
+  <% } %>
 </div>
 
 <%- include('../partials/footer') -%>

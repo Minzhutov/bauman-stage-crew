@@ -1,0 +1,64 @@
+<%- include('../partials/head') -%>
+<%- include('../partials/header') -%>
+
+<div class="container" style="max-width:760px;">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow"><%= categoryLabels[manual.category] || categoryLabels.other %></div>
+      <h1 style="font-size:30px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);"><%= manual.title %></h1>
+      <div class="pill-group" style="margin-top:8px;">
+        <span class="pill">👤 <%= manual.uploader ? manual.uploader.fullName : '—' %></span>
+        <span class="pill">🕒 <%= h.formatDate(manual.createdAt) %></span>
+        <% if (manual.size) { %><span class="pill">📎 <%= h.formatBytes(manual.size) %></span><% } %>
+      </div>
+    </div>
+    <% if (currentUser && currentUser.role === 'admin') { %>
+      <div class="btn-group">
+        <form action="/manuals/<%= manual.id %>?_method=DELETE" method="POST" data-confirm="Удалить мануал?">
+          <button type="submit" class="btn btn-danger">Удалить</button>
+        </form>
+      </div>
+    <% } %>
+  </div>
+
+  <% if (manual.description) { %>
+    <div class="panel">
+      <div class="panel-title">Кратко</div>
+      <p style="color:var(--text);"><%= manual.description %></p>
+    </div>
+  <% } %>
+
+  <% if (manual.fileName) { %>
+    <div class="panel">
+      <div class="panel-title">Файл</div>
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <span class="text-faint">📎 <%= manual.originalName %><% if (manual.size) { %> · <%= h.formatBytes(manual.size) %><% } %></span>
+        <a href="/manuals/<%= manual.id %>/download" class="btn btn-primary btn-small">Скачать</a>
+      </div>
+    </div>
+  <% } %>
+
+  <% if (manual.content) { %>
+    <div class="panel">
+      <div class="panel-title">Содержание</div>
+      <p style="white-space:pre-wrap; color:var(--text);"><%= manual.content %></p>
+    </div>
+  <% } %>
+
+  <% if (manual.videoLinks && manual.videoLinks.length) { %>
+    <div class="panel">
+      <div class="panel-title">Видео</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <% manual.videoLinks.forEach(function(url){ %>
+          <a href="<%= url %>" target="_blank" rel="noopener noreferrer" class="card card-link" style="padding:12px 16px; word-break:break-all;">🎥 <%= url %></a>
+        <% }); %>
+      </div>
+    </div>
+  <% } %>
+
+  <% if (!manual.description && !manual.fileName && !manual.content && (!manual.videoLinks || !manual.videoLinks.length)) { %>
+    <div class="empty"><div class="glyph">📄</div>Содержимое пока не добавлено.</div>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') -%>

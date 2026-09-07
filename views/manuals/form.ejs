@@ -1,0 +1,49 @@
+<%- include('../partials/head') -%>
+<%- include('../partials/header') -%>
+
+<div class="container" style="max-width:640px;">
+  <div class="eyebrow">База знаний</div>
+  <h1 style="font-size:28px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);"><%= title %></h1>
+
+  <form action="/manuals" method="POST" enctype="multipart/form-data" class="stack panel">
+    <div class="field">
+      <label for="title">Название</label>
+      <input type="text" id="title" name="title" value="<%= form.title || '' %>" required>
+    </div>
+    <div class="field">
+      <label for="category">Направление</label>
+      <select id="category" name="category">
+        <% categoryOrder.forEach(function(key){ %>
+          <option value="<%= key %>" <%= form.category === key ? 'selected' : '' %>><%= categoryLabels[key] %></option>
+        <% }); %>
+      </select>
+      <p class="hint">По направлению мануалы можно будет отфильтровать в общем списке.</p>
+    </div>
+    <div class="field">
+      <label for="description">Краткое описание</label>
+      <textarea id="description" name="description" rows="2"><%= form.description || '' %></textarea>
+    </div>
+    <div class="field">
+      <label for="content">Подробный текст</label>
+      <textarea id="content" name="content" rows="8" placeholder="Содержание мануала: разделы, шаги, пояснения…"><%= form.content || '' %></textarea>
+      <p class="hint">Отображается на отдельной странице мануала.</p>
+    </div>
+    <div class="field">
+      <label for="videoLinks">Ссылки на видео</label>
+      <textarea id="videoLinks" name="videoLinks" rows="3" placeholder="По одной ссылке на строку"><%= form.videoLinks || '' %></textarea>
+    </div>
+    <div class="field">
+      <label for="file">Файл (необязательно)</label>
+      <input type="file" id="file" name="file" data-filename-target="#filename-preview">
+      <span id="filename-preview" class="hint">Файл не выбран</span>
+      <p class="hint">PDF, DOC(X), XLS(X), PPT(X), TXT, RTF, ZIP, PNG/JPG — до 25 МБ.</p>
+    </div>
+    <p class="hint">Заполните хотя бы одно: файл, подробный текст или ссылку на видео.</p>
+    <div class="btn-group">
+      <button type="submit" class="btn btn-primary">Опубликовать</button>
+      <a href="/manuals" class="btn">Отмена</a>
+    </div>
+  </form>
+</div>
+
+<%- include('../partials/footer') -%>
