@@ -10,11 +10,12 @@
   <div class="layout-2col">
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Должность</th><th>Описание</th><th>Задействована</th><th></th></tr></thead>
+        <thead><tr><th>Должность</th><th>Категория</th><th>Описание</th><th>Задействована</th><th></th></tr></thead>
         <tbody>
           <% positions.forEach(function(row){ %>
             <tr>
               <td style="font-weight:600;"><%= row.position.name %></td>
+              <td><span class="pill">💠 <%= domain.POSITION_CATEGORY_LABELS[row.position.category] || domain.POSITION_CATEGORY_LABELS.other %></span></td>
               <td class="text-faint"><%= row.position.description || '—' %></td>
               <td class="text-faint">Меропр.: <%= row.usedByEvents %> · Люди: <%= row.usedByUsers %></td>
               <td>
@@ -24,7 +25,7 @@
               </td>
             </tr>
           <% }); %>
-          <% if (!positions.length) { %><tr><td colspan="4" class="text-faint" style="text-align:center; padding:24px;">Каталог пуст.</td></tr><% } %>
+          <% if (!positions.length) { %><tr><td colspan="5" class="text-faint" style="text-align:center; padding:24px;">Каталог пуст.</td></tr><% } %>
         </tbody>
       </table>
     </div>
@@ -35,6 +36,14 @@
         <div class="field">
           <label for="name">Название</label>
           <input type="text" id="name" name="name" required placeholder="Напр. Оператор дрона">
+        </div>
+        <div class="field">
+          <label for="category">Категория</label>
+          <select id="category" name="category">
+            <% domain.POSITION_CATEGORY_ORDER.forEach(function(key){ %>
+              <option value="<%= key %>"><%= domain.POSITION_CATEGORY_LABELS[key] %></option>
+            <% }); %>
+          </select>
         </div>
         <div class="field">
           <label for="description">Описание</label>

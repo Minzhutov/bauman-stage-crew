@@ -14,12 +14,11 @@ const router = express.Router();
 const AVATAR_DIR = path.join(__dirname, '..', 'public', 'uploads', 'avatars');
 const avatarUpload = imageUpload(AVATAR_DIR, { maxSizeMB: 3 });
 
+const BADGE_DIR = path.join(__dirname, '..', 'public', 'uploads', 'badges');
+const badgeUpload = imageUpload(BADGE_DIR, { maxSizeMB: 8 });
+
 function canManage(req, user) {
   return req.currentUser.id === user.id || req.currentUser.role === 'admin';
-}
-
-function canViewProfile(req, user) {
-  return req.currentUser.id === user.id || isStaff(req.currentUser);
 }
 
 function parseTelegram(raw) {
@@ -44,6 +43,7 @@ function loadProfileData(userId) {
     achievementProgress: domain.achievementProgress(user.id),
     signups: domain.userSignups(user.id),
     academies: domain.userAcademies(user.id),
+    badges: domain.userBadges(user.id),
     stats: {
       eventsCompleted: domain.userEventsCompletedCount(user.id),
       academiesAttended: domain.userAcademiesAttendedCount(user.id),
@@ -60,10 +60,6 @@ router.get('/:id', requireAuth, (req, res) => {
   const isOwner = req.currentUser.id === data.user.id;
   const isAdmin = req.currentUser.role === 'admin';
   const staff = isStaff(req.currentUser);
-  if (!canViewProfile(req, data.user)) {
-    req.flash('error', 'Профиль доступен только владельцу, администраторам и техническим директорам.');
-    return res.redirect('/leaderboard');
-  }
   res.render('profile/show', {
     title: data.user.fullName,
     profile: data,
@@ -79,10 +75,6 @@ router.get('/:id/events.pdf', requireAuth, (req, res) => {
   const user = store.find('users', req.params.id);
   if (!user) {
     req.flash('error', 'Пользователь не найден.');
-    return res.redirect('/leaderboard');
-  }
-  if (!canViewProfile(req, user)) {
-    req.flash('error', 'Недостаточно прав.');
     return res.redirect('/leaderboard');
   }
   const rows = domain.userSignups(user.id).map((s) => {
@@ -171,6 +163,59 @@ router.delete('/:id/avatar', requireAuth, (req, res) => {
     fs.unlink(path.join(AVATAR_DIR, user.avatarFile), () => {});
     store.update('users', user.id, { avatarFile: null });
     req.flash('success', 'Аватар удалён.');
+  }
+  res.redirect(`/profile/${user.id}`);
+});
+
+router.post('/:id/badges', requireAuth, (req, res) => {
+  const user = store.find('users', req.params.id);
+  if (!user) {
+    req.flash('error', 'Пользователь не найден.');
+    return res.redirect('/leaderboard');
+  }
+  if (!canManage(req, user)) {
+    req.flash('error', 'Недостаточно прав.');
+    return res.redirect('/leaderboard');
+  }
+  badgeUpload.single('badge')(req, res, (err) => {
+    if (err) {
+      req.flash('error', err.message || 'Не удалось загрузить бейдж.');
+      return res.redirect(`/profile/${user.id}`);
+    }
+    if (!req.file) {
+      req.flash('error', 'Выберите файл — фото бейджа или вырезку из PDF.');
+      return res.redirect(`/profile/${user.id}`);
+    }
+    store.insert('userBadges', {
+      userId: user.id,
+      fileName: req.file.filename,
+      originalName: req.file.originalname,
+      mimeType: req.file.mimetype,
+      size: req.file.size,
+      title: (req.body.title || '').trim(),
+      uploadedBy: req.currentUser.id,
+      createdAt: new Date().toISOString(),
+    });
+    req.flash('success', 'Бейдж добавлен.');
+    res.redirect(`/profile/${user.id}`);
+  });
+});
+
+router.delete('/:id/badges/:badgeId', requireAuth, (req, res) => {
+  const user = store.find('users', req.params.id);
+  if (!user) {
+    req.flash('error', 'Пользователь не найден.');
+    return res.redirect('/leaderboard');
+  }
+  if (!canManage(req, user)) {
+    req.flash('error', 'Недостаточно прав.');
+    return res.redirect('/leaderboard');
+  }
+  const badge = store.find('userBadges', req.params.badgeId);
+  if (badge && badge.userId === user.id) {
+    fs.unlink(path.join(BADGE_DIR, badge.fileName), () => {});
+    store.remove('userBadges', badge.id);
+    req.flash('success', 'Бейдж удалён.');
   }
   res.redirect(`/profile/${user.id}`);
 });

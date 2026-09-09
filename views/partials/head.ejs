@@ -9,3 +9,6 @@
 </head>
 <body>
 <div class="grid-overlay"></div>
+<% if (typeof currentPath === 'undefined' || currentPath !== '/') { %>
+  <%- include('site_beams') -%>
+<% } %>

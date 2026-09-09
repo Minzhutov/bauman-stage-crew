@@ -88,12 +88,13 @@ router.get('/positions', (req, res) => {
 });
 
 router.post('/positions', (req, res) => {
-  const { name, description } = req.body;
+  const { name, description, category } = req.body;
   if (!name || !name.trim()) {
     req.flash('error', 'Укажите название должности.');
     return res.redirect('/admin/positions');
   }
-  store.insert('positions', { name: name.trim(), description: (description || '').trim() });
+  const validCategory = domain.POSITION_CATEGORY_LABELS[category] ? category : 'other';
+  store.insert('positions', { name: name.trim(), description: (description || '').trim(), category: validCategory });
   req.flash('success', 'Должность добавлена в каталог.');
   res.redirect('/admin/positions');
 });

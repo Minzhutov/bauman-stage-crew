@@ -6,6 +6,8 @@ public/uploads/achievements/*
 !public/uploads/achievements/.gitkeep
 public/uploads/avatars/*
 !public/uploads/avatars/.gitkeep
+public/uploads/badges/*
+!public/uploads/badges/.gitkeep
 .env
 *.log
 .DS_Store

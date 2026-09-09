@@ -210,22 +210,47 @@
       <!-- Должности -->
       <div class="panel">
         <div class="panel-title">Доступные должности</div>
-        <% if (profile.positions.length) { %>
-          <div class="pill-group" style="margin-bottom: <%= isAdmin ? '16px' : '0' %>;">
-            <% profile.positions.forEach(function(p){ %><span class="pill"><%= p.name %></span><% }); %>
-          </div>
+        <% if (isAdmin) { %>
+          <% if (profile.positions.length) { %>
+            <div class="pill-group" style="margin-bottom:16px;">
+              <% profile.positions.forEach(function(p){ %><span class="pill"><%= p.name %></span><% }); %>
+            </div>
+          <% } else { %>
+            <p class="text-faint" style="margin-bottom:16px;">Должности не назначены.</p>
+          <% } %>
         <% } else { %>
-          <p class="text-faint" style="margin-bottom: <%= isAdmin ? '16px' : '0' %>;">Должности не назначены.</p>
+          <% domain.groupPositionsByCategory(allPositions).forEach(function(group){ %>
+            <div class="position-category-group">
+              <div class="position-category-label"><%= group.label %></div>
+              <div class="position-catalog">
+                <% group.positions.forEach(function(p){ %>
+                  <% var granted = profile.positions.some(function(up){ return up.id === p.id; }); %>
+                  <div class="position-catalog-item <%= granted ? 'is-granted' : '' %>" title="<%= p.description || '' %>">
+                    <span class="position-catalog-mark"><%= granted ? '✓' : '' %></span>
+                    <span><%= p.name %></span>
+                  </div>
+                <% }); %>
+              </div>
+            </div>
+          <% }); %>
+          <% if (!allPositions.length) { %><p class="text-faint">Каталог должностей пуст.</p><% } %>
         <% } %>
 
         <% if (isAdmin) { %>
           <form action="/profile/<%= profile.user.id %>/positions" method="POST" class="stack">
-            <div style="display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto;">
-              <% allPositions.forEach(function(p){ %>
-                <label class="check-row" style="text-transform:none; font-weight:400; color:var(--text);">
-                  <input type="checkbox" name="positionIds" value="<%= p.id %>" <%= profile.positions.some(function(up){ return up.id === p.id; }) ? 'checked' : '' %>>
-                  <%= p.name %>
-                </label>
+            <div style="display:flex; flex-direction:column; gap:14px; max-height:320px; overflow-y:auto;">
+              <% domain.groupPositionsByCategory(allPositions).forEach(function(group){ %>
+                <div>
+                  <div class="position-category-label"><%= group.label %></div>
+                  <div style="display:flex; flex-direction:column; gap:8px;">
+                    <% group.positions.forEach(function(p){ %>
+                      <label class="check-row" style="text-transform:none; font-weight:400; color:var(--text);">
+                        <input type="checkbox" name="positionIds" value="<%= p.id %>" <%= profile.positions.some(function(up){ return up.id === p.id; }) ? 'checked' : '' %>>
+                        <%= p.name %>
+                      </label>
+                    <% }); %>
+                  </div>
+                </div>
               <% }); %>
               <% if (!allPositions.length) { %><p class="text-faint">Каталог должностей пуст.</p><% } %>
             </div>
@@ -312,6 +337,43 @@
               <input type="text" id="comment" name="comment" placeholder="Необязательно">
             </div>
             <button type="submit" class="btn btn-small">Присвоить ачивку</button>
+          </form>
+        <% } %>
+      </div>
+
+      <!-- Бейджи мероприятий -->
+      <div class="panel">
+        <div class="panel-title">Бейджи мероприятий</div>
+        <% if (!profile.badges.length) { %>
+          <p class="text-faint" style="margin-bottom: <%= isOwner || isAdmin ? '16px' : '0' %>;">Бейджей пока нет.</p>
+        <% } else { %>
+          <div class="badge-gallery" style="margin-bottom: <%= isOwner || isAdmin ? '16px' : '0' %>;">
+            <% profile.badges.forEach(function(b){ %>
+              <div class="badge-card">
+                <a href="/uploads/badges/<%= b.fileName %>" target="_blank" rel="noopener">
+                  <img src="/uploads/badges/<%= b.fileName %>" alt="<%= b.title || 'Бейдж' %>">
+                </a>
+                <% if (b.title) { %><span class="badge-card-caption"><%= b.title %></span><% } %>
+                <% if (isOwner || isAdmin) { %>
+                  <form action="/profile/<%= profile.user.id %>/badges/<%= b.id %>?_method=DELETE" method="POST" data-confirm="Удалить бейдж?" class="badge-card-remove-form">
+                    <button type="submit" class="badge-card-remove" title="Удалить">✕</button>
+                  </form>
+                <% } %>
+              </div>
+            <% }); %>
+          </div>
+        <% } %>
+        <% if (isOwner || isAdmin) { %>
+          <form action="/profile/<%= profile.user.id %>/badges" method="POST" enctype="multipart/form-data" class="field-row" style="align-items:flex-end;">
+            <div class="field">
+              <label for="badgeTitle">Подпись (необязательно)</label>
+              <input type="text" id="badgeTitle" name="title" placeholder="Мисс Очарование 2025">
+            </div>
+            <div class="field">
+              <label for="badgeInput">Фото бейджа или вырезка из PDF</label>
+              <input type="file" id="badgeInput" name="badge" accept=".png,.jpg,.jpeg,.webp,.gif" required>
+            </div>
+            <button type="submit" class="btn btn-small" style="height:44px;">Добавить бейдж</button>
           </form>
         <% } %>
       </div>
