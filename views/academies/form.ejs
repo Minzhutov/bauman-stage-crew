@@ -13,7 +13,15 @@
     <div class="field-row">
       <div class="field">
         <label for="topic">Направление</label>
-        <input type="text" id="topic" name="topic" value="<%= form.topic || '' %>" placeholder="Звук, свет, безопасность…">
+        <select id="topic" name="topic">
+          <option value="">Не выбрано</option>
+          <% domain.ACADEMY_TOPICS.forEach(function(t){ %>
+            <option value="<%= t %>" <%= form.topic === t ? 'selected' : '' %>><%= t %></option>
+          <% }); %>
+          <% if (form.topic && !domain.ACADEMY_TOPICS.includes(form.topic)) { %>
+            <option value="<%= form.topic %>" selected><%= form.topic %></option>
+          <% } %>
+        </select>
       </div>
       <div class="field">
         <label for="speaker">Спикер</label>

@@ -8,7 +8,7 @@
       <h1 style="font-size:32px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);">Мероприятия</h1>
       <p>Список событий, техническое задание и требуемые специалисты по каждой площадке.</p>
     </div>
-    <% if (currentUser && currentUser.role === 'admin') { %>
+    <% if (currentUser && auth.isStaff(currentUser)) { %>
       <a href="/events/new" class="btn btn-primary">+ Новое мероприятие</a>
     <% } %>
   </div>

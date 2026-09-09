@@ -629,7 +629,7 @@ p { color: var(--text-dim); margin: 0 0 12px; }
   color: #fff;
 }
 
-.chip-role, .chip-user, .chip-tech {
+.chip-role, .chip-user, .chip-tech, .chip-mentor {
   display: inline-block;
   padding: 3px 9px;
   border-radius: 6px;
@@ -652,6 +652,11 @@ p { color: var(--text-dim); margin: 0 0 12px; }
   background: rgba(56,189,248,0.12);
   border: 1px solid rgba(56,189,248,0.35);
   color: var(--rarity-rare);
+}
+.chip-mentor {
+  background: rgba(52,211,153,0.12);
+  border: 1px solid rgba(52,211,153,0.35);
+  color: var(--green);
 }
 
 /* ---------- Progress ---------- */
@@ -1239,6 +1244,7 @@ legend { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transfor
   overflow: hidden;
 }
 .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.profile-avatar[data-lightbox] { cursor: zoom-in; }
 .avatar-actions { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 .avatar-action-btn {
   display: inline-block;
@@ -1253,6 +1259,46 @@ legend { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transfor
 }
 .avatar-action-btn:hover { color: var(--violet-bright); }
 .avatar-action-danger:hover { color: var(--red); }
+
+/* ---------- Лайтбокс — увеличение фото по клику ---------- */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(6, 6, 8, 0.88);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  cursor: zoom-out;
+  animation: lightbox-fade-in .15s ease;
+}
+.lightbox-overlay img {
+  max-width: min(90vw, 640px);
+  max-height: 85vh;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px -10px rgba(0,0,0,0.6);
+}
+.lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.lightbox-close:hover { color: var(--violet-bright); border-color: var(--violet-bright); }
+@keyframes lightbox-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
 /* ---------- Footer ---------- */
 .site-footer {

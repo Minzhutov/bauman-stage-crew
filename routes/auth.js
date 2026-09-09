@@ -19,8 +19,8 @@ function findUserByValidResetToken(token) {
 }
 
 function defaultPositionIds() {
-  const montirovshchik = store.where('positions', (p) => p.name === 'Монтировщик')[0];
-  return montirovshchik ? [montirovshchik.id] : [];
+  const tech = store.where('positions', (p) => p.name === 'Техник')[0];
+  return tech ? [tech.id] : [];
 }
 
 router.get('/register', redirectIfAuthenticated, (req, res) => {

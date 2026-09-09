@@ -85,14 +85,15 @@
 
   <% if (adminRows.length) { %>
     <div class="eyebrow" style="margin-top:40px;">Вне общего зачёта</div>
-    <h2 style="font-size:20px;">Администраторы</h2>
-    <p class="text-faint" style="margin-bottom:16px;">Администраторы не участвуют в общем рейтинге, чтобы не соревноваться с командой за баллы. Таблица — для справки.</p>
+    <h2 style="font-size:20px;">Администраторы и штат</h2>
+    <p class="text-faint" style="margin-bottom:16px;">Администраторы, технические директора и наставники не участвуют в общем рейтинге, чтобы не соревноваться с командой за баллы. Таблица — для справки.</p>
     <div class="table-wrap" style="opacity:0.85;">
       <table>
         <thead>
           <tr>
             <th>#</th>
             <th>Участник</th>
+            <th>Роль</th>
             <th>Ачивки</th>
             <th>Смен закрыто</th>
             <th>Баллы</th>
@@ -114,6 +115,7 @@
                   <%= row.user.fullName %>
                 </a>
               </td>
+              <td><span class="<%= row.user.role === 'admin' ? 'chip-role' : row.user.role === 'tech_director' ? 'chip-tech' : 'chip-mentor' %>"><%= auth.ROLE_LABELS[row.user.role] %></span></td>
               <td><%= row.achievementsCount %></td>
               <td><%= row.completedEvents %></td>
               <td class="points-cell"><%= row.points %></td>

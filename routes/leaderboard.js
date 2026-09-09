@@ -17,14 +17,14 @@ router.get('/', (req, res) => {
     selectedSeason = domain.activeSeason();
   }
 
-  // Администраторы не соревнуются за баллы с командой — общий рейтинг
-  // строится только по участникам и техническим директорам, а админы
-  // выведены в отдельную справочную таблицу ниже.
+  // Штат (админы, технические директора, наставники) не соревнуется за баллы
+  // с командой — общий рейтинг строится только по обычным участникам, а весь
+  // штат выведен в отдельную справочную таблицу ниже.
   const rows = domain.leaderboard(selectedSeason || undefined, {
-    includeRoles: ['user', 'tech_director'],
+    includeRoles: ['user'],
   });
   const adminRows = domain.leaderboard(selectedSeason || undefined, {
-    includeRoles: ['admin'],
+    includeRoles: ['admin', 'tech_director', 'mentor'],
   });
   res.render('leaderboard/index', {
     title: 'Таблица лидеров',

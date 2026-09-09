@@ -8,7 +8,7 @@
       <h1 style="font-size:32px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);">Мануалы</h1>
       <p>Регламенты, инструкции, видео и техническая документация команды.</p>
     </div>
-    <% if (currentUser && currentUser.role === 'admin') { %>
+    <% if (auth.isContentStaff(currentUser)) { %>
       <a href="/manuals/new" class="btn btn-primary">+ Новый мануал</a>
     <% } %>
   </div>

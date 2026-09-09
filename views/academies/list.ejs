@@ -8,7 +8,7 @@
       <h1 style="font-size:32px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);">Академии</h1>
       <p>Анонсы лекций: тема, время и аудитория проведения.</p>
     </div>
-    <% if (auth.isStaff(currentUser)) { %>
+    <% if (auth.isContentStaff(currentUser)) { %>
       <a href="/academies/new" class="btn btn-primary">+ Новая лекция</a>
     <% } %>
   </div>

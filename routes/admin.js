@@ -38,7 +38,7 @@ router.put('/users/:id/role', (req, res) => {
     req.flash('error', 'Пользователь не найден.');
     return res.redirect('/admin/users');
   }
-  const nextRole = ['user', 'tech_director', 'admin'].includes(req.body.role) ? req.body.role : 'user';
+  const nextRole = ['user', 'tech_director', 'mentor', 'admin'].includes(req.body.role) ? req.body.role : 'user';
   if (user.role === 'admin' && nextRole !== 'admin') {
     const adminCount = store.where('users', (u) => u.role === 'admin').length;
     if (adminCount <= 1) {

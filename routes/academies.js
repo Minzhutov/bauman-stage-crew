@@ -2,7 +2,7 @@
 const express = require('express');
 const store = require('../lib/store');
 const domain = require('../lib/domain');
-const { requireAuth, requireStaff } = require('../lib/auth');
+const { requireAuth, requireStaff, requireContentStaff } = require('../lib/auth');
 
 const router = express.Router();
 
@@ -18,11 +18,11 @@ router.get('/', (req, res) => {
   res.render('academies/list', { title: 'Академии', academies });
 });
 
-router.get('/new', requireAuth, requireStaff, (req, res) => {
+router.get('/new', requireAuth, requireContentStaff, (req, res) => {
   res.render('academies/form', { title: 'Новая лекция', academy: null, form: {} });
 });
 
-router.post('/', requireAuth, requireStaff, (req, res) => {
+router.post('/', requireAuth, requireContentStaff, (req, res) => {
   const { title, topic, description, room, speaker, startsAt, endsAt } = req.body;
   const errors = [];
   if (!title || !title.trim()) errors.push('Укажите тему лекции.');
@@ -186,7 +186,7 @@ router.delete('/:id', requireAuth, requireStaff, (req, res) => {
 
 // --- Начисление баллов по итогам лекции ---
 
-router.post('/:id/points', requireAuth, requireStaff, (req, res) => {
+router.post('/:id/points', requireAuth, requireContentStaff, (req, res) => {
   const academy = store.find('academies', req.params.id);
   const user = store.find('users', req.body.userId);
   if (!academy) {

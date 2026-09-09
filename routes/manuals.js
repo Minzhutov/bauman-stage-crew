@@ -6,7 +6,7 @@ const crypto = require('crypto');
 const multer = require('multer');
 const store = require('../lib/store');
 const domain = require('../lib/domain');
-const { requireAuth, requireAdmin } = require('../lib/auth');
+const { requireAuth, requireAdmin, requireContentStaff } = require('../lib/auth');
 
 const router = express.Router();
 
@@ -77,7 +77,7 @@ router.get('/', (req, res) => {
   });
 });
 
-router.get('/new', requireAuth, requireAdmin, (req, res) => {
+router.get('/new', requireAuth, requireContentStaff, (req, res) => {
   res.render('manuals/form', {
     title: 'Новый мануал',
     form: {},
@@ -86,7 +86,7 @@ router.get('/new', requireAuth, requireAdmin, (req, res) => {
   });
 });
 
-router.post('/', requireAuth, requireAdmin, (req, res) => {
+router.post('/', requireAuth, requireContentStaff, (req, res) => {
   upload.single('file')(req, res, (err) => {
     if (err) {
       req.flash('error', err.message || 'Не удалось загрузить файл.');
@@ -137,11 +137,56 @@ router.get('/:id', (req, res) => {
     req.flash('error', 'Мануал не найден.');
     return res.redirect('/manuals');
   }
+  const pointsAwards = store
+    .where('pointsLog', (p) => p.manualId === manual.id)
+    .map((p) => Object.assign({}, p, { user: store.find('users', p.userId) }))
+    .sort((a, b) => new Date(b.awardedAt) - new Date(a.awardedAt));
+
   res.render('manuals/detail', {
     title: manual.title,
     manual: withUploader(manual),
     categoryLabels: domain.POSITION_CATEGORY_LABELS,
+    pointsAwards,
+    allUsers: store.all('users').sort((a, b) => a.fullName.localeCompare(b.fullName, 'ru')),
   });
+});
+
+router.post('/:id/points', requireAuth, requireContentStaff, (req, res) => {
+  const manual = store.find('manuals', req.params.id);
+  const user = store.find('users', req.body.userId);
+  if (!manual) {
+    req.flash('error', 'Мануал не найден.');
+    return res.redirect('/manuals');
+  }
+  if (!user) {
+    req.flash('error', 'Пользователь не найден.');
+    return res.redirect(`/manuals/${manual.id}`);
+  }
+  const amount = parseInt(req.body.amount, 10);
+  if (!Number.isFinite(amount) || amount === 0) {
+    req.flash('error', 'Укажите ненулевое количество баллов.');
+    return res.redirect(`/manuals/${manual.id}`);
+  }
+  const reason = (req.body.reason || '').trim() || `Мануал: ${manual.title}`;
+
+  store.insert('pointsLog', {
+    userId: user.id,
+    amount,
+    reason,
+    eventId: null,
+    academyId: null,
+    manualId: manual.id,
+    awardedBy: req.currentUser.id,
+    awardedAt: new Date().toISOString(),
+  });
+
+  const newAchievements = domain.evaluateAutoAchievements(user.id);
+  let extra = '';
+  if (newAchievements.length) {
+    extra = ` Автоматически выданы ачивки: ${newAchievements.map((a) => a.achievement.name).join(', ')}.`;
+  }
+  req.flash('success', `Начислено ${amount > 0 ? '+' : ''}${amount} баллов пользователю ${user.fullName} за мануал.${extra}`);
+  res.redirect(`/manuals/${manual.id}`);
 });
 
 router.get('/:id/download', requireAuth, (req, res) => {

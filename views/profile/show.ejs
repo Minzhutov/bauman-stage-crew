@@ -4,7 +4,7 @@
 <div class="container">
   <div class="profile-hero">
     <div class="profile-avatar-wrap">
-      <div class="profile-avatar">
+      <div class="profile-avatar" <% if (profile.user.avatarFile) { %>data-lightbox="/uploads/avatars/<%= profile.user.avatarFile %>"<% } %>>
         <% if (profile.user.avatarFile) { %>
           <img src="/uploads/avatars/<%= profile.user.avatarFile %>" alt="">
         <% } else { %>
@@ -28,7 +28,7 @@
     <div>
       <h1 style="font-size:28px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text); margin-bottom:4px;"><%= profile.user.fullName %></h1>
       <div class="pill-group">
-        <span class="<%= profile.user.role === 'admin' ? 'chip-role' : profile.user.role === 'tech_director' ? 'chip-tech' : 'chip-user' %>"><%= auth.ROLE_LABELS[profile.user.role] %></span>
+        <span class="<%= profile.user.role === 'admin' ? 'chip-role' : profile.user.role === 'tech_director' ? 'chip-tech' : profile.user.role === 'mentor' ? 'chip-mentor' : 'chip-user' %>"><%= auth.ROLE_LABELS[profile.user.role] %></span>
         <% if (profile.user.studyGroup) { %><span class="pill">🎓 <%= profile.user.studyGroup %></span><% } %>
         <span class="pill mono" style="color:var(--amber);"><%= profile.points %> баллов</span>
         <span class="pill">В команде с <%= h.formatDate(profile.user.createdAt) %></span>
@@ -108,7 +108,7 @@
         <% } else { %>
           <p><strong>Email:</strong> <%= profile.user.email %></p>
           <p><strong>Учебная группа:</strong> <%= profile.user.studyGroup || '—' %></p>
-          <p><strong>Телефон:</strong> <%= profile.user.phone || '—' %></p>
+          <!-- Телефон в чужом профиле виден только администратору (см. форму выше) -->
           <p><strong>Telegram:</strong> <% if (profile.user.telegram) { %><a href="https://t.me/<%= profile.user.telegram %>" target="_blank" rel="noopener" style="color:var(--violet-bright);">@<%= profile.user.telegram %></a><% } else { %>—<% } %></p>
           <% if (profile.user.bio) { %><p><%= profile.user.bio %></p><% } %>
         <% } %>
@@ -177,6 +177,8 @@
                         <a href="/events/<%= p.event.id %>" style="color:var(--text);"><%= p.reason %></a>
                       <% } else if (p.academy) { %>
                         <a href="/academies/<%= p.academy.id %>" style="color:var(--text);"><%= p.reason %></a>
+                      <% } else if (p.manual) { %>
+                        <a href="/manuals/<%= p.manual.id %>" style="color:var(--text);"><%= p.reason %></a>
                       <% } else { %>
                         <%= p.reason %>
                       <% } %>

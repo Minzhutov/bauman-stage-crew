@@ -121,4 +121,28 @@
     });
     input.dispatchEvent(new Event('input'));
   });
+
+  // Лайтбокс — клик по фото с [data-lightbox] открывает его увеличенную копию
+  function closeLightbox() {
+    var overlay = document.querySelector('.lightbox-overlay');
+    if (overlay) overlay.remove();
+    document.removeEventListener('keydown', onLightboxKeydown);
+  }
+  function onLightboxKeydown(e) {
+    if (e.key === 'Escape') closeLightbox();
+  }
+  document.addEventListener('click', function (e) {
+    var trigger = e.target.closest('[data-lightbox]');
+    if (trigger) {
+      var overlay = document.createElement('div');
+      overlay.className = 'lightbox-overlay';
+      overlay.innerHTML =
+        '<button type="button" class="lightbox-close" aria-label="Закрыть">✕</button>' +
+        '<img src="' + trigger.getAttribute('data-lightbox') + '" alt="">';
+      document.body.appendChild(overlay);
+      document.addEventListener('keydown', onLightboxKeydown);
+      return;
+    }
+    if (e.target.closest('.lightbox-overlay')) closeLightbox();
+  });
 })();

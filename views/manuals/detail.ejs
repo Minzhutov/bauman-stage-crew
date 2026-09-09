@@ -59,6 +59,48 @@
   <% if (!manual.description && !manual.fileName && !manual.content && (!manual.videoLinks || !manual.videoLinks.length)) { %>
     <div class="empty"><div class="glyph">📄</div>Содержимое пока не добавлено.</div>
   <% } %>
+
+  <% if (auth.isContentStaff(currentUser) || pointsAwards.length) { %>
+    <div class="panel">
+      <div class="panel-title">Баллы за мануал</div>
+      <% if (!pointsAwards.length) { %>
+        <p class="text-faint" style="margin-bottom: <%= auth.isContentStaff(currentUser) ? '16px' : '0' %>;">Баллы за этот мануал ещё никому не начислены.</p>
+      <% } else { %>
+        <div class="table-wrap" style="margin-bottom: <%= auth.isContentStaff(currentUser) ? '16px' : '0' %>;">
+          <table>
+            <thead><tr><th>Участник</th><th>Дата</th><th>Баллы</th></tr></thead>
+            <tbody>
+              <% pointsAwards.forEach(function(p){ %>
+                <tr>
+                  <td><a href="/profile/<%= p.userId %>" style="color:var(--text); font-weight:600;"><%= p.user ? p.user.fullName : '—' %></a></td>
+                  <td class="text-faint"><%= h.formatDate(p.awardedAt) %></td>
+                  <td class="points-cell"><%= p.amount > 0 ? '+' : '' %><%= p.amount %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+
+      <% if (auth.isContentStaff(currentUser)) { %>
+        <form action="/manuals/<%= manual.id %>/points" method="POST" class="field-row" style="align-items:flex-end;">
+          <div class="field">
+            <label for="userId">Участник</label>
+            <select id="userId" name="userId" required>
+              <% allUsers.forEach(function(u){ %>
+                <option value="<%= u.id %>"><%= u.fullName %></option>
+              <% }); %>
+            </select>
+          </div>
+          <div class="field">
+            <label for="amount">Баллы</label>
+            <input type="number" id="amount" name="amount" value="10" required>
+          </div>
+          <button type="submit" class="btn btn-primary" style="height:44px;">Начислить</button>
+        </form>
+      <% } %>
+    </div>
+  <% } %>
 </div>
 
 <%- include('../partials/footer') -%>

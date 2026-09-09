@@ -62,9 +62,9 @@
   <div class="panel">
     <div class="panel-title">Баллы за лекцию</div>
     <% if (!pointsAwards.length) { %>
-      <p class="text-faint" style="margin-bottom: <%= auth.isStaff(currentUser) ? '16px' : '0' %>;">Баллы за эту лекцию ещё никому не начислены.</p>
+      <p class="text-faint" style="margin-bottom: <%= auth.isContentStaff(currentUser) ? '16px' : '0' %>;">Баллы за эту лекцию ещё никому не начислены.</p>
     <% } else { %>
-      <div class="table-wrap" style="margin-bottom: <%= auth.isStaff(currentUser) ? '16px' : '0' %>;">
+      <div class="table-wrap" style="margin-bottom: <%= auth.isContentStaff(currentUser) ? '16px' : '0' %>;">
         <table>
           <thead><tr><th>Участник</th><th>Дата</th><th>Баллы</th></tr></thead>
           <tbody>
@@ -80,7 +80,7 @@
       </div>
     <% } %>
 
-    <% if (auth.isStaff(currentUser)) { %>
+    <% if (auth.isContentStaff(currentUser)) { %>
       <form action="/academies/<%= academy.id %>/points" method="POST" class="field-row" style="align-items:flex-end;">
         <div class="field">
           <label for="userId">Участник</label>

@@ -2,7 +2,7 @@
 const express = require('express');
 const store = require('../lib/store');
 const domain = require('../lib/domain');
-const { requireAuth, requireAdmin } = require('../lib/auth');
+const { requireAuth, requireAdmin, requireStaff } = require('../lib/auth');
 
 const router = express.Router();
 
@@ -55,11 +55,11 @@ router.get('/', (req, res) => {
   });
 });
 
-router.get('/new', requireAuth, requireAdmin, (req, res) => {
+router.get('/new', requireAuth, requireStaff, (req, res) => {
   res.render('events/form', eventFormLocals({ title: 'Новое мероприятие' }));
 });
 
-router.post('/', requireAuth, requireAdmin, (req, res) => {
+router.post('/', requireAuth, requireStaff, (req, res) => {
   const { title, description, venueId, startsAt, endsAt } = req.body;
   const errors = [];
   if (!title || !title.trim()) errors.push('Укажите название мероприятия.');
@@ -84,6 +84,13 @@ router.post('/', requireAuth, requireAdmin, (req, res) => {
     );
   }
 
+  // Технический директор, создавший мероприятие сам, автоматически становится
+  // его куратором — иначе он не смог бы потом его редактировать (canManageEvent
+  // пускает только админа и назначенного техдира). Админ выбирает куратора сам.
+  const techDirectorId = req.currentUser.role === 'admin'
+    ? parseTechDirectorId(req.body)
+    : req.currentUser.id;
+
   const event = store.insert('events', {
     title: title.trim(),
     description: (description || '').trim(),
@@ -92,7 +99,7 @@ router.post('/', requireAuth, requireAdmin, (req, res) => {
     endsAt: new Date(endsAt).toISOString(),
     status: 'planned',
     requiredPositions,
-    techDirectorId: parseTechDirectorId(req.body),
+    techDirectorId,
     createdBy: req.currentUser.id,
     createdAt: new Date().toISOString(),
   });
