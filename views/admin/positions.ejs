@@ -7,21 +7,34 @@
   <p>Этот список используется и в требованиях мероприятий, и в профилях пользователей — он общий для всей команды.</p>
   <%- include('../partials/admin_nav') -%>
 
-  <div class="layout-2col">
+  <div>
     <div class="table-wrap">
       <table>
         <thead><tr><th>Должность</th><th>Категория</th><th>Описание</th><th>Задействована</th><th></th></tr></thead>
         <tbody>
           <% positions.forEach(function(row){ %>
+            <% var formId = 'pos-form-' + row.position.id; %>
             <tr>
-              <td style="font-weight:600;"><%= row.position.name %></td>
-              <td><span class="pill">💠 <%= domain.POSITION_CATEGORY_LABELS[row.position.category] || domain.POSITION_CATEGORY_LABELS.other %></span></td>
-              <td class="text-faint"><%= row.position.description || '—' %></td>
+              <td>
+                <form id="<%= formId %>" action="/admin/positions/<%= row.position.id %>?_method=PUT" method="POST"></form>
+                <input type="text" name="name" form="<%= formId %>" value="<%= row.position.name %>" required style="font-weight:600; min-width:140px;">
+              </td>
+              <td>
+                <select name="category" form="<%= formId %>">
+                  <% domain.POSITION_CATEGORY_ORDER.forEach(function(key){ %>
+                    <option value="<%= key %>" <%= row.position.category === key ? 'selected' : '' %>><%= domain.POSITION_CATEGORY_LABELS[key] %></option>
+                  <% }); %>
+                </select>
+              </td>
+              <td><input type="text" name="description" form="<%= formId %>" value="<%= row.position.description || '' %>" style="min-width:180px;"></td>
               <td class="text-faint">Меропр.: <%= row.usedByEvents %> · Люди: <%= row.usedByUsers %></td>
               <td>
-                <form action="/admin/positions/<%= row.position.id %>?_method=DELETE" method="POST" data-confirm="Удалить должность «<%= row.position.name %>»? Она будет убрана из всех мероприятий и профилей.">
-                  <button type="submit" class="btn btn-small btn-danger">Удалить</button>
-                </form>
+                <div class="btn-group">
+                  <button type="submit" form="<%= formId %>" class="btn btn-small">Сохранить</button>
+                  <form action="/admin/positions/<%= row.position.id %>?_method=DELETE" method="POST" data-confirm="Удалить должность «<%= row.position.name %>»? Она будет убрана из всех мероприятий и профилей.">
+                    <button type="submit" class="btn btn-small btn-danger">Удалить</button>
+                  </form>
+                </div>
               </td>
             </tr>
           <% }); %>
@@ -30,26 +43,28 @@
       </table>
     </div>
 
-    <div class="panel">
+    <div class="panel" style="margin-top:18px;">
       <div class="panel-title">Добавить должность</div>
       <form action="/admin/positions" method="POST" class="stack">
-        <div class="field">
-          <label for="name">Название</label>
-          <input type="text" id="name" name="name" required placeholder="Напр. Оператор дрона">
-        </div>
-        <div class="field">
-          <label for="category">Категория</label>
-          <select id="category" name="category">
-            <% domain.POSITION_CATEGORY_ORDER.forEach(function(key){ %>
-              <option value="<%= key %>"><%= domain.POSITION_CATEGORY_LABELS[key] %></option>
-            <% }); %>
-          </select>
+        <div class="field-row">
+          <div class="field">
+            <label for="name">Название</label>
+            <input type="text" id="name" name="name" required placeholder="Напр. Оператор дрона">
+          </div>
+          <div class="field">
+            <label for="category">Категория</label>
+            <select id="category" name="category">
+              <% domain.POSITION_CATEGORY_ORDER.forEach(function(key){ %>
+                <option value="<%= key %>"><%= domain.POSITION_CATEGORY_LABELS[key] %></option>
+              <% }); %>
+            </select>
+          </div>
         </div>
         <div class="field">
           <label for="description">Описание</label>
-          <textarea id="description" name="description" rows="3"></textarea>
+          <textarea id="description" name="description" rows="2"></textarea>
         </div>
-        <button type="submit" class="btn btn-primary btn-block">Добавить</button>
+        <button type="submit" class="btn btn-primary">Добавить</button>
       </form>
     </div>
   </div>

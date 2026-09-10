@@ -99,6 +99,27 @@ router.post('/positions', (req, res) => {
   res.redirect('/admin/positions');
 });
 
+router.put('/positions/:id', (req, res) => {
+  const position = store.find('positions', req.params.id);
+  if (!position) {
+    req.flash('error', 'Должность не найдена.');
+    return res.redirect('/admin/positions');
+  }
+  const { name, description, category } = req.body;
+  if (!name || !name.trim()) {
+    req.flash('error', 'Укажите название должности.');
+    return res.redirect('/admin/positions');
+  }
+  const validCategory = domain.POSITION_CATEGORY_LABELS[category] ? category : 'other';
+  store.update('positions', position.id, {
+    name: name.trim(),
+    description: (description || '').trim(),
+    category: validCategory,
+  });
+  req.flash('success', `Должность «${name.trim()}» обновлена.`);
+  res.redirect('/admin/positions');
+});
+
 router.delete('/positions/:id', (req, res) => {
   const position = store.find('positions', req.params.id);
   if (!position) {
