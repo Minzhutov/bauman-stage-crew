@@ -1,5 +1,9 @@
 node_modules/
 data/db.json
+data/db.json.pre-sqlite-backup
+data/bsc.sqlite
+data/bsc.sqlite-wal
+data/bsc.sqlite-shm
 public/uploads/manuals/*
 !public/uploads/manuals/.gitkeep
 public/uploads/achievements/*
