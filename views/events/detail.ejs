@@ -90,36 +90,46 @@
             <% if (r.approved.length || r.pending.length) { %>
               <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
                 <% r.approved.forEach(function(s){ %>
-                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
-                    <a href="/profile/<%= s.user.id %>" style="color:var(--text);">
-                      <span class="badge badge-<%= s.status %>"><%= s.status === 'done' ? 'выполнено' : 'подтверждён' %></span>
-                      <%= s.user ? s.user.fullName : '—' %>
-                    </a>
-                    <span style="display:flex; gap:8px; align-items:center;">
-                      <% if (s.status === 'done') { %>
-                        <span class="mono text-faint">+<%= s.pointsAwarded %> б.</span>
-                      <% } else if (domain.canManageEvent(currentUser, event)) { %>
-                        <form action="/events/<%= event.id %>/signups/<%= s.id %>?_method=PUT" method="POST" style="display:flex; gap:6px; align-items:center;">
-                          <input type="hidden" name="action" value="complete">
-                          <input type="number" name="points" min="0" max="500" value="20" style="width:70px; padding:4px 8px;">
-                          <button type="submit" class="btn btn-small btn-primary">Закрыть смену</button>
-                        </form>
-                      <% } %>
-                    </span>
+                  <div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+                      <a href="/profile/<%= s.user.id %>" style="color:var(--text);">
+                        <span class="badge badge-<%= s.status %>"><%= s.status === 'done' ? 'выполнено' : 'подтверждён' %></span>
+                        <%= s.user ? s.user.fullName : '—' %>
+                      </a>
+                      <span style="display:flex; gap:8px; align-items:center;">
+                        <% if (s.status === 'done') { %>
+                          <span class="mono text-faint">+<%= s.pointsAwarded %> б.</span>
+                        <% } else if (domain.canManageEvent(currentUser, event)) { %>
+                          <form action="/events/<%= event.id %>/signups/<%= s.id %>?_method=PUT" method="POST" data-ajax style="display:flex; gap:6px; align-items:center;">
+                            <input type="hidden" name="action" value="complete">
+                            <input type="number" name="points" min="0" max="500" value="20" style="width:70px; padding:4px 8px;">
+                            <button type="submit" class="btn btn-small btn-primary">Закрыть смену</button>
+                          </form>
+                        <% } %>
+                      </span>
+                    </div>
+                    <div class="text-faint" style="font-size:11px; padding-left:2px;">
+                      🕒 <%= h.formatDateTime(s.arrivesAt || event.startsAt) %> → <%= h.formatDateTime(s.departsAt || event.endsAt) %><% if (s.comment) { %> · «<%= s.comment %>»<% } %>
+                    </div>
                   </div>
                 <% }); %>
                 <% r.pending.forEach(function(s){ %>
-                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
-                    <a href="/profile/<%= s.user.id %>" style="color:var(--text);">
-                      <span class="badge badge-pending">заявка</span>
-                      <%= s.user ? s.user.fullName : '—' %>
-                    </a>
-                    <% if (domain.canManageEvent(currentUser, event)) { %>
-                      <span class="btn-group">
-                        <form action="/events/<%= event.id %>/signups/<%= s.id %>?_method=PUT" method="POST"><input type="hidden" name="action" value="approve"><button type="submit" class="btn btn-small">Подтвердить</button></form>
-                        <form action="/events/<%= event.id %>/signups/<%= s.id %>?_method=PUT" method="POST"><input type="hidden" name="action" value="reject"><button type="submit" class="btn btn-small btn-danger">Отклонить</button></form>
-                      </span>
-                    <% } %>
+                  <div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; font-size:13px;">
+                      <a href="/profile/<%= s.user.id %>" style="color:var(--text);">
+                        <span class="badge badge-pending">заявка</span>
+                        <%= s.user ? s.user.fullName : '—' %>
+                      </a>
+                      <% if (domain.canManageEvent(currentUser, event)) { %>
+                        <span class="btn-group">
+                          <form action="/events/<%= event.id %>/signups/<%= s.id %>?_method=PUT" method="POST"><input type="hidden" name="action" value="approve"><button type="submit" class="btn btn-small">Подтвердить</button></form>
+                          <form action="/events/<%= event.id %>/signups/<%= s.id %>?_method=PUT" method="POST"><input type="hidden" name="action" value="reject"><button type="submit" class="btn btn-small btn-danger">Отклонить</button></form>
+                        </span>
+                      <% } %>
+                    </div>
+                    <div class="text-faint" style="font-size:11px; padding-left:2px;">
+                      🕒 <%= h.formatDateTime(s.arrivesAt || event.startsAt) %> → <%= h.formatDateTime(s.departsAt || event.endsAt) %><% if (s.comment) { %> · «<%= s.comment %>»<% } %>
+                    </div>
                   </div>
                 <% }); %>
               </div>
@@ -130,6 +140,175 @@
           <p class="text-faint">Требования к специалистам не заданы.</p>
         <% } %>
       </div>
+
+      <% if (event.headcount.buckets.length) { %>
+        <div class="panel">
+          <div class="panel-title">Явка по времени</div>
+          <p class="hint" style="margin-top:-6px; margin-bottom:14px;">Сколько подтверждённых участников будет на площадке в каждый момент мероприятия — по времени «буду с… до…», указанному при отклике.</p>
+          <div class="chart-bars" role="img" aria-label="Количество подтверждённых участников на площадке по времени мероприятия">
+            <% event.headcount.buckets.forEach(function(b){ %>
+              <% var pct = event.headcount.max > 0 ? Math.round((b.count / event.headcount.max) * 100) : 0; %>
+              <% var label = (b.bucketHours >= 24 ? h.formatDate(new Date(b.start)) : (h.formatDate(new Date(b.start)) + ', ' + h.formatTime(new Date(b.start)))) + ' — ' + b.count + ' чел.'; %>
+              <div class="chart-bar-col">
+                <% if (b.count > 0 && b.count === event.headcount.max) { %><span class="chart-bar-label"><%= b.count %></span><% } %>
+                <div class="chart-bar" style="height: <%= b.count > 0 ? Math.max(pct, 6) : 2 %>%;" data-chart-tooltip="<%= label %>" tabindex="0"></div>
+              </div>
+            <% }); %>
+          </div>
+          <div class="chart-axis-labels">
+            <span><%= event.headcount.buckets[0].bucketHours >= 24 ? h.formatDate(new Date(event.headcount.buckets[0].start)) : h.formatTime(new Date(event.headcount.buckets[0].start)) %></span>
+            <span><%= event.headcount.buckets[event.headcount.buckets.length - 1].bucketHours >= 24 ? h.formatDate(new Date(event.headcount.buckets[event.headcount.buckets.length - 1].start)) : h.formatTime(new Date(event.headcount.buckets[event.headcount.buckets.length - 1].start)) %></span>
+          </div>
+          <details style="margin-top:12px;">
+            <summary style="cursor:pointer; font-size:11px; color:var(--text-faint);">Таблица значений</summary>
+            <div style="margin-top:8px; display:flex; flex-direction:column; gap:3px; font-size:12px;" class="text-faint">
+              <% event.headcount.buckets.forEach(function(b){ %>
+                <div><%= b.bucketHours >= 24 ? h.formatDate(new Date(b.start)) : (h.formatDate(new Date(b.start)) + ' ' + h.formatTime(new Date(b.start))) %> — <%= b.count %> чел.</div>
+              <% }); %>
+            </div>
+          </details>
+        </div>
+      <% } %>
+
+      <% if (event.equipment.length) { %>
+        <div class="panel">
+          <div class="panel-title">Список оборудования</div>
+          <% domain.groupEquipmentByCategory(event.equipment).forEach(function(group){ %>
+            <div class="position-category-label"><%= group.label %></div>
+            <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:16px;">
+              <% group.items.forEach(function(eq){ %>
+                <div>
+                  <a href="#" data-modal-target="#equip-info-<%= eq.id %>" class="pill" style="justify-content:space-between; color:var(--text);">
+                    <span style="display:flex; align-items:center; gap:8px;">
+                      <span class="equip-thumb equip-thumb-small">
+                        <% if (eq.photoFile) { %><img src="/uploads/equipment/<%= eq.photoFile %>" alt=""><% } else { %>📦<% } %>
+                      </span>
+                      <%= eq.name %> <span class="mono text-faint">× <%= eq.allocatedQuantity %></span>
+                    </span>
+                    <span class="badge badge-equip-<%= eq.status %>"><%= domain.EQUIPMENT_STATUS_LABELS[eq.status] %></span>
+                  </a>
+                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:6px 4px 0;">
+                    <span class="badge badge-transit-<%= eq.transit %>"><%= domain.TRANSIT_LABELS[eq.transit] %></span>
+                    <% if (domain.canManageEvent(currentUser, event)) { %>
+                      <% if (eq.transit !== 'departed') { %>
+                        <form action="/events/<%= event.id %>/equipment/<%= eq.id %>/transit?_method=PUT" method="POST">
+                          <input type="hidden" name="action" value="depart">
+                          <button type="submit" class="btn btn-small">Уехало</button>
+                        </form>
+                      <% } else { %>
+                        <form action="/events/<%= event.id %>/equipment/<%= eq.id %>/transit?_method=PUT" method="POST">
+                          <input type="hidden" name="action" value="arrive">
+                          <button type="submit" class="btn btn-small btn-primary">Приехало</button>
+                        </form>
+                      <% } %>
+                      <% if (eq.transit !== 'pending') { %>
+                        <form action="/events/<%= event.id %>/equipment/<%= eq.id %>/transit?_method=PUT" method="POST">
+                          <input type="hidden" name="action" value="reset">
+                          <button type="submit" class="btn btn-small" style="opacity:.7;">Сбросить</button>
+                        </form>
+                      <% } %>
+                    <% } %>
+                  </div>
+                </div>
+                <template id="equip-info-<%= eq.id %>">
+                  <% if (eq.photoFile) { %><img src="/uploads/equipment/<%= eq.photoFile %>" alt="" style="width:100%; border-radius:10px; margin-bottom:14px;"><% } %>
+                  <div class="panel-title" style="margin-bottom:12px;"><%= eq.name %></div>
+                  <p>
+                    <span class="badge badge-equip-<%= eq.status %>"><%= domain.EQUIPMENT_STATUS_LABELS[eq.status] %></span>
+                    <span class="mono text-faint">На мероприятии: <%= eq.allocatedQuantity %> из <%= eq.quantity %></span>
+                  </p>
+                  <% if (eq.location) { %><p class="text-faint" style="margin-top:10px;">📍 <%= eq.location %></p><% } %>
+                  <% if (eq.rackUnits != null) { %><p class="text-faint">Высота: <%= eq.rackUnits %> U</p><% } %>
+                  <% if (eq.volume != null || eq.weight != null) { %>
+                    <p class="text-faint">
+                      <% if (eq.volume != null) { %>Объём (ед.): <%= eq.volume %> л<% } %><% if (eq.volume != null && eq.weight != null) { %> · <% } %><% if (eq.weight != null) { %>Вес (ед.): <%= eq.weight %> кг<% } %>
+                    </p>
+                  <% } %>
+                  <% if (eq.description) { %><p style="white-space:pre-wrap; margin-top:10px;"><%= eq.description %></p><% } %>
+                  <% var eqAllocations = domain.equipmentAllocations(eq.id).filter(function(a){ return a.event.id !== event.id; }); %>
+                  <% if (eqAllocations.length) { %>
+                    <div style="margin-top:10px; font-size:12.5px; color:var(--text-faint);">
+                      <div style="margin-bottom:4px;">Также забронировано:</div>
+                      <% eqAllocations.forEach(function(a){ %>
+                        <div><a href="/events/<%= a.event.id %>"><%= a.event.title %></a> — <%= h.formatDate(a.event.startsAt) %>–<%= h.formatDate(a.event.endsAt) %></div>
+                      <% }); %>
+                    </div>
+                  <% } %>
+                </template>
+              <% }); %>
+            </div>
+          <% }); %>
+        </div>
+      <% } %>
+
+      <% if (event.cases.length) { %>
+        <div class="panel">
+          <div class="panel-title">Комплекты (кейсы)</div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <% event.cases.forEach(function(c){ %>
+              <div>
+                <a href="#" data-modal-target="#case-info-<%= c.id %>" class="pill" style="justify-content:space-between; color:var(--text);">
+                  <span style="display:flex; align-items:center; gap:8px;">
+                    <span class="equip-thumb equip-thumb-small">
+                      <% if (c.photoFile) { %><img src="/uploads/cases/<%= c.photoFile %>" alt=""><% } else { %>🧰<% } %>
+                    </span>
+                    <%= c.name %> <span class="text-faint">· <%= domain.CASE_TYPE_LABELS[c.type] %></span>
+                  </span>
+                  <span class="badge badge-equip-<%= c.status %>"><%= domain.EQUIPMENT_STATUS_LABELS[c.status] %></span>
+                </a>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:6px 4px 0;">
+                  <span class="badge badge-transit-<%= c.transit %>"><%= domain.TRANSIT_LABELS[c.transit] %></span>
+                  <% if (domain.canManageEvent(currentUser, event)) { %>
+                    <% if (c.transit !== 'departed') { %>
+                      <form action="/events/<%= event.id %>/cases/<%= c.id %>/transit?_method=PUT" method="POST">
+                        <input type="hidden" name="action" value="depart">
+                        <button type="submit" class="btn btn-small">Уехало</button>
+                      </form>
+                    <% } else { %>
+                      <form action="/events/<%= event.id %>/cases/<%= c.id %>/transit?_method=PUT" method="POST">
+                        <input type="hidden" name="action" value="arrive">
+                        <button type="submit" class="btn btn-small btn-primary">Приехало</button>
+                      </form>
+                    <% } %>
+                    <% if (c.transit !== 'pending') { %>
+                      <form action="/events/<%= event.id %>/cases/<%= c.id %>/transit?_method=PUT" method="POST">
+                        <input type="hidden" name="action" value="reset">
+                        <button type="submit" class="btn btn-small" style="opacity:.7;">Сбросить</button>
+                      </form>
+                    <% } %>
+                  <% } %>
+                </div>
+              </div>
+              <template id="case-info-<%= c.id %>">
+                <% if (c.photoFile) { %><img src="/uploads/cases/<%= c.photoFile %>" alt="" style="width:100%; border-radius:10px; margin-bottom:14px;"><% } %>
+                <div class="panel-title" style="margin-bottom:12px;"><%= c.name %> · <%= domain.CASE_TYPE_LABELS[c.type] %></div>
+                <p>
+                  <span class="badge badge-equip-<%= c.status %>"><%= domain.EQUIPMENT_STATUS_LABELS[c.status] %></span>
+                  <span class="badge badge-transit-<%= c.transit %>"><%= domain.TRANSIT_LABELS[c.transit] %></span>
+                </p>
+                <% if (c.location) { %><p class="text-faint" style="margin-top:10px;">📍 <%= c.location %></p><% } %>
+                <p class="text-faint">Вес в сборе: <%= c.totalWeight %> кг<% if (c.capacity != null) { %> · Загружено: <%= c.capacityUsed %> из <%= c.capacity %> <%= c.capacityUnit %><% } %></p>
+                <% if (c.description) { %><p style="margin-top:10px;"><%= c.description %></p><% } %>
+                <div style="margin-top:10px; display:flex; flex-direction:column; gap:4px;">
+                  <% c.items.forEach(function(row){ %>
+                    <div>· <%= row.quantity %> × <%= row.item.name %></div>
+                  <% }); %>
+                  <% if (!c.items.length) { %><div class="text-faint">Кейс пуст.</div><% } %>
+                </div>
+                <% var caseAllocations = c.allocations.filter(function(e){ return e.id !== event.id; }); %>
+                <% if (caseAllocations.length) { %>
+                  <div style="margin-top:10px; font-size:12.5px; color:var(--text-faint);">
+                    <div style="margin-bottom:4px;">Также забронирован:</div>
+                    <% caseAllocations.forEach(function(e){ %>
+                      <div><a href="/events/<%= e.id %>"><%= e.title %></a> — <%= h.formatDate(e.startsAt) %>–<%= h.formatDate(e.endsAt) %></div>
+                    <% }); %>
+                  </div>
+                <% } %>
+              </template>
+            <% }); %>
+          </div>
+        </div>
+      <% } %>
     </div>
 
     <div>
@@ -147,6 +326,29 @@
                   <span><%= pos && pos.position ? pos.position.name : '—' %></span>
                   <span class="badge badge-<%= s.status %>"><%= s.status === 'pending' ? 'ожидает' : s.status === 'approved' ? 'подтверждён' : s.status === 'done' ? 'выполнено' : 'отклонён' %></span>
                 </div>
+                <div class="text-faint" style="font-size:11.5px; padding:0 4px;">
+                  🕒 <%= h.formatDateTime(s.arrivesAt || event.startsAt) %> → <%= h.formatDateTime(s.departsAt || event.endsAt) %>
+                  <% if (s.comment) { %><br>«<%= s.comment %>»<% } %>
+                </div>
+                <% if (s.status === 'pending' || s.status === 'approved') { %>
+                  <details>
+                    <summary style="cursor:pointer; font-size:11.5px; color:var(--text-faint);">Изменить время и комментарий</summary>
+                    <form action="/events/<%= event.id %>/signups/<%= s.id %>/schedule?_method=PUT" method="POST" class="stack" style="margin-top:8px;">
+                      <div class="field-row">
+                        <div class="field">
+                          <label style="font-size:11px;">Буду с</label>
+                          <input type="datetime-local" name="arrivesAt" value="<%= h.toInputValue(s.arrivesAt || event.startsAt) %>" min="<%= h.toInputValue(event.startsAt) %>" max="<%= h.toInputValue(event.endsAt) %>">
+                        </div>
+                        <div class="field">
+                          <label style="font-size:11px;">До</label>
+                          <input type="datetime-local" name="departsAt" value="<%= h.toInputValue(s.departsAt || event.endsAt) %>" min="<%= h.toInputValue(event.startsAt) %>" max="<%= h.toInputValue(event.endsAt) %>">
+                        </div>
+                      </div>
+                      <textarea name="comment" rows="2" placeholder="Комментарий (не обязательно)" style="font-size:13px;"><%= s.comment || '' %></textarea>
+                      <button type="submit" class="btn btn-small btn-block">Сохранить</button>
+                    </form>
+                  </details>
+                <% } %>
                 <% if (s.status === 'pending') { %>
                   <form action="/events/<%= event.id %>/signups/<%= s.id %>?_method=DELETE" method="POST" data-confirm="Отменить заявку?">
                     <button type="submit" class="btn btn-small btn-block">Отменить заявку</button>
@@ -163,8 +365,19 @@
           <% if (availablePositions.length) { %>
             <p class="hint" style="margin-bottom:10px;">Доступные вам должности для этого мероприятия:</p>
             <% availablePositions.forEach(function(p){ %>
-              <form action="/events/<%= event.id %>/signups" method="POST" style="margin-bottom:8px;">
+              <form action="/events/<%= event.id %>/signups" method="POST" class="stack" style="margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--border-soft);">
                 <input type="hidden" name="positionId" value="<%= p.id %>">
+                <div class="field-row">
+                  <div class="field">
+                    <label style="font-size:11px;">Буду с</label>
+                    <input type="datetime-local" name="arrivesAt" value="<%= h.toInputValue(event.startsAt) %>" min="<%= h.toInputValue(event.startsAt) %>" max="<%= h.toInputValue(event.endsAt) %>">
+                  </div>
+                  <div class="field">
+                    <label style="font-size:11px;">До</label>
+                    <input type="datetime-local" name="departsAt" value="<%= h.toInputValue(event.endsAt) %>" min="<%= h.toInputValue(event.startsAt) %>" max="<%= h.toInputValue(event.endsAt) %>">
+                  </div>
+                </div>
+                <textarea name="comment" rows="2" placeholder="Комментарий (не обязательно)" style="font-size:13px;"></textarea>
                 <button type="submit" class="btn btn-block">Откликнуться: <%= p.name %></button>
               </form>
             <% }); %>
@@ -174,6 +387,41 @@
         <% } %>
       </div>
     </div>
+  </div>
+
+  <div class="panel" id="event-chat" style="margin-top:18px;">
+    <div class="panel-title">Чат мероприятия</div>
+    <div id="event-chat-messages" style="display:flex; flex-direction:column; gap:12px; max-height:380px; overflow-y:auto; margin-bottom:14px; padding-right:4px;">
+      <% if (!event.chatMessages.length) { %>
+        <p class="text-faint">Пока никто не написал — будьте первым.</p>
+      <% } %>
+      <% event.chatMessages.forEach(function(m){ %>
+        <div style="display:flex; gap:10px; align-items:flex-start;">
+          <span class="event-person-avatar" style="width:32px; height:32px; font-size:13px;">
+            <% if (m.user && m.user.avatarFile) { %>
+              <img src="/uploads/avatars/<%= m.user.avatarFile %>" alt="">
+            <% } else { %>
+              <%= m.user ? m.user.fullName.trim().charAt(0).toUpperCase() : '?' %>
+            <% } %>
+          </span>
+          <div style="min-width:0;">
+            <div style="font-size:12.5px;">
+              <% if (m.user) { %><a href="/profile/<%= m.user.id %>" style="color:var(--text); font-weight:700;"><%= m.user.fullName %></a><% } else { %><span class="text-faint">Удалённый пользователь</span><% } %>
+              <span class="text-faint"> · <%= h.formatDateTime(m.createdAt) %></span>
+            </div>
+            <div style="font-size:13.5px; white-space:pre-wrap; overflow-wrap:anywhere;"><%= m.text %></div>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+    <% if (currentUser) { %>
+      <form action="/events/<%= event.id %>/chat" method="POST" data-ajax style="display:flex; gap:8px;">
+        <input type="text" name="text" placeholder="Написать сообщение…" maxlength="2000" required style="flex:1;">
+        <button type="submit" class="btn btn-primary">Отправить</button>
+      </form>
+    <% } else { %>
+      <p class="text-faint">Войдите, чтобы писать в чат.</p>
+    <% } %>
   </div>
 </div>
 

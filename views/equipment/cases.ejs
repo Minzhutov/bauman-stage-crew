@@ -1,0 +1,63 @@
+<%- include('../partials/head') -%>
+<%- include('../partials/header') -%>
+
+<div class="container">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Физические контейнеры с оборудованием</div>
+      <h1 style="font-size:32px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);">Кейсы</h1>
+      <p>Кейс — рэк, «гроб» на колёсах, сумка и т.п., в который заранее упаковано конкретное оборудование. На мероприятие кейс едет целиком — это и есть комплект для техников, которые будут его собирать: на странице мероприятия кейсы показаны рядом с отдельными позициями оборудования.</p>
+    </div>
+    <a href="/equipment/cases/new" class="btn btn-primary">+ Новый кейс</a>
+  </div>
+  <%- include('../partials/equipment_nav') -%>
+
+  <% if (!cases.length) { %>
+    <div class="empty"><div class="glyph">🧰</div>Кейсов пока нет.</div>
+  <% } else { %>
+    <div class="card-grid">
+      <% cases.forEach(function(c){ %>
+        <div class="card equip-card">
+          <div class="equip-card-photo">
+            <% if (c.photoFile) { %><img src="/uploads/cases/<%= c.photoFile %>" alt=""><% } else { %>🧰<% } %>
+            <span class="badge badge-equip-<%= c.status %> equip-card-status"><%= domain.EQUIPMENT_STATUS_LABELS[c.status] %></span>
+          </div>
+          <div class="equip-card-body">
+            <div>
+              <h3 class="equip-card-title"><%= c.name %></h3>
+              <span class="badge badge-planned" style="margin-top:6px;"><%= domain.CASE_TYPE_LABELS[c.type] %></span>
+            </div>
+            <% if (c.description) { %><p style="font-size:13px; margin:0;"><%= c.description %></p><% } %>
+            <div class="meta">
+              <% if (c.location) { %><span>📍 <%= c.location %></span><% } %>
+              <% c.items.forEach(function(row){ %>
+                <span>· <%= row.quantity %> × <%= row.item.name %></span>
+              <% }); %>
+              <% if (!c.items.length) { %><span class="text-faint">Кейс пуст — добавьте состав при редактировании.</span><% } %>
+              <span>
+                Загружено: <%= c.capacityUsed %><% if (c.capacity != null) { %> из <%= c.capacity %><% } %> <%= c.capacityUnit %>
+                <% if (c.overCapacity) { %> <span style="color:var(--red);">— превышает вместимость!</span><% } %>
+              </span>
+              <span>Вес в сборе: <%= c.totalWeight %> кг<% if (c.weight != null) { %> (тара <%= c.weight %> кг)<% } %></span>
+            </div>
+            <% if (c.allocations.length) { %>
+              <div style="font-size:11.5px; color:var(--text-faint); display:flex; flex-direction:column; gap:3px;">
+                <% c.allocations.forEach(function(e){ %>
+                  <div>Забронирован: <a href="/events/<%= e.id %>"><%= e.title %></a> — <%= h.formatDate(e.startsAt) %>–<%= h.formatDate(e.endsAt) %></div>
+                <% }); %>
+              </div>
+            <% } %>
+            <div class="card-foot">
+              <a href="/equipment/cases/<%= c.id %>/edit" class="btn btn-small">Редактировать</a>
+              <form action="/equipment/cases/<%= c.id %>?_method=DELETE" method="POST" data-confirm="Удалить кейс «<%= c.name %>» из каталога?">
+                <button type="submit" class="btn btn-small btn-danger" <%= c.currentEvent ? 'disabled title="Занят мероприятием"' : '' %>>Удалить</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') -%>

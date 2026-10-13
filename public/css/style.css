@@ -565,6 +565,98 @@ p { color: var(--text-dim); margin: 0 0 12px; }
 .badge-completed, .badge-done, .badge-approved { color: var(--green); border-color: rgba(52,211,153,0.35); }
 .badge-cancelled, .badge-rejected { color: var(--red); border-color: rgba(248,113,113,0.35); }
 .badge-pending { color: var(--amber); border-color: rgba(251,191,36,0.35); }
+.badge-equip-available { color: var(--green); border-color: rgba(52,211,153,0.35); }
+.badge-equip-maintenance { color: var(--amber); border-color: rgba(251,191,36,0.35); }
+.badge-equip-broken { color: var(--red); border-color: rgba(248,113,113,0.35); }
+.badge-equip-missing { color: var(--red); border-color: rgba(248,113,113,0.35); }
+.badge-transit-pending { color: var(--text-faint); }
+.badge-transit-departed { color: var(--amber); border-color: rgba(251,191,36,0.35); }
+.badge-transit-returned { color: var(--green); border-color: rgba(52,211,153,0.35); }
+
+/* ---------- Оборудование — миниатюра фото ---------- */
+.equip-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-soft);
+  font-size: 18px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.equip-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.equip-thumb-small { width: 28px; height: 28px; font-size: 13px; border-radius: 6px; }
+
+/* ---------- Карточки оборудования/кейсов — фото баннером сверху, текст не слипается ---------- */
+.equip-card { padding: 0; display: flex; flex-direction: column; overflow: hidden; }
+.equip-card-photo {
+  width: 100%;
+  height: 140px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 42px;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+}
+.equip-card-photo img { width: 100%; height: 100%; object-fit: cover; }
+.equip-card-status { position: absolute; top: 10px; right: 10px; background: var(--bg-card); }
+.equip-card-body { padding: 18px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+.equip-card-title { font-size: 15px; line-height: 1.4; word-break: break-word; margin-bottom: 0; }
+.equip-card .meta { gap: 7px; line-height: 1.5; }
+.equip-card .meta span { align-items: flex-start; }
+.equip-card .card-foot { margin-top: 0; }
+
+/* ---------- График явки участников по времени (страница мероприятия) ---------- */
+.chart-bars { display: flex; align-items: flex-end; gap: 3px; height: 140px; padding-top: 22px; }
+.chart-bar-col {
+  flex: 1;
+  max-width: 24px;
+  min-width: 3px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+  position: relative;
+}
+.chart-bar {
+  width: 100%;
+  background: linear-gradient(180deg, var(--violet-bright), var(--violet-dim));
+  border-radius: 4px 4px 0 0;
+  min-height: 2px;
+  cursor: pointer;
+  transition: opacity .15s ease;
+}
+.chart-bar:hover, .chart-bar:focus { opacity: .75; outline: none; }
+.chart-bar-label {
+  position: absolute;
+  top: -18px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.chart-axis-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-faint); margin-top: 6px; }
+.chart-tooltip {
+  position: fixed;
+  z-index: 300;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--text);
+  pointer-events: none;
+  box-shadow: 0 8px 24px -4px rgba(0,0,0,0.5);
+  display: none;
+}
 
 .pill {
   display: inline-flex;
@@ -1307,6 +1399,46 @@ legend { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transfor
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* ---------- Модальное окно с подробностями (напр. оборудование) ---------- */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(6, 6, 8, 0.88);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  animation: lightbox-fade-in .15s ease;
+}
+.modal-box {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 26px;
+  max-width: min(90vw, 440px);
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px -10px rgba(0,0,0,0.6);
+}
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.modal-close:hover { color: var(--violet-bright); border-color: var(--violet-bright); }
 
 /* ---------- Footer ---------- */
 .site-footer {

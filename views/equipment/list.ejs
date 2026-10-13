@@ -1,0 +1,95 @@
+<%- include('../partials/head') -%>
+<%- include('../partials/header') -%>
+
+<div class="container">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Каталог оборудования</div>
+      <h1 style="font-size:32px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);">Оборудование</h1>
+      <p>Склад техники: количество, статус, местоположение. «На складе» считается автоматически — минус то, что уже зарезервировано запланированными мероприятиями, напрямую или упаковано в один из кейсов (вкладка «Кейсы»).</p>
+    </div>
+    <a href="/equipment/new" class="btn btn-primary">+ Добавить оборудование</a>
+  </div>
+  <%- include('../partials/equipment_nav') -%>
+
+  <div class="btn-group" style="margin-bottom:24px; flex-wrap:wrap;">
+    <a href="/equipment" class="btn btn-small <%= categoryFilter === '' ? 'btn-primary' : '' %>">Все</a>
+    <% categories.forEach(function(cat){ %>
+      <% if (categoryCounts[cat.id]) { %>
+        <a href="/equipment?category=<%= cat.id %>" class="btn btn-small <%= categoryFilter === cat.id ? 'btn-primary' : '' %>"><%= cat.name %> <span class="mono text-faint">· <%= categoryCounts[cat.id] %></span></a>
+      <% } %>
+    <% }); %>
+    <% if (categoryCounts.none) { %>
+      <a href="/equipment" class="btn btn-small">Без категории <span class="mono text-faint">· <%= categoryCounts.none %></span></a>
+    <% } %>
+  </div>
+
+  <details class="panel" style="margin-bottom:24px;">
+    <summary style="cursor:pointer; font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-faint);">Управление категориями</summary>
+    <div style="margin-top:16px; display:flex; flex-direction:column; gap:10px;">
+      <% categories.forEach(function(cat){ %>
+        <% var formId = 'cat-form-' + cat.id; %>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <form id="<%= formId %>" action="/equipment/categories/<%= cat.id %>?_method=PUT" method="POST"></form>
+          <input type="text" name="name" form="<%= formId %>" value="<%= cat.name %>" style="flex:1; min-width:0;">
+          <span class="text-faint mono" style="font-size:12px; white-space:nowrap;"><%= categoryUsage[cat.id] || 0 %> шт.</span>
+          <button type="submit" form="<%= formId %>" class="btn btn-small">Сохранить</button>
+          <form action="/equipment/categories/<%= cat.id %>?_method=DELETE" method="POST" data-confirm="Удалить категорию «<%= cat.name %>»?">
+            <button type="submit" class="btn btn-small btn-danger" <%= categoryUsage[cat.id] > 0 ? 'disabled title="Используется у оборудования"' : '' %>>Удалить</button>
+          </form>
+        </div>
+      <% }); %>
+      <form action="/equipment/categories" method="POST" style="display:flex; gap:8px; margin-top:6px;">
+        <input type="text" name="name" placeholder="Новая категория, напр. Трансляции" required style="flex:1; min-width:0;">
+        <button type="submit" class="btn btn-small btn-primary">Добавить</button>
+      </form>
+    </div>
+  </details>
+
+  <% if (!equipment.length) { %>
+    <div class="empty"><div class="glyph">📦</div>Каталог пуст.</div>
+  <% } else { %>
+    <div class="card-grid">
+      <% equipment.forEach(function(eq){ %>
+        <div class="card equip-card">
+          <div class="equip-card-photo">
+            <% if (eq.photoFile) { %><img src="/uploads/equipment/<%= eq.photoFile %>" alt=""><% } else { %>📦<% } %>
+            <span class="badge badge-equip-<%= eq.status %> equip-card-status"><%= domain.EQUIPMENT_STATUS_LABELS[eq.status] %></span>
+          </div>
+          <div class="equip-card-body">
+            <div>
+              <h3 class="equip-card-title"><%= eq.name %></h3>
+              <span class="badge badge-planned" style="margin-top:6px;"><%= domain.equipmentCategoryLabel(eq.categoryId) %></span>
+            </div>
+            <div class="meta">
+              <span>📦 На складе: <%= eq.availableQuantity %> из <%= eq.quantity %></span>
+              <% if (eq.location) { %><span>📍 <%= eq.location %></span><% } %>
+              <% if (eq.rackUnits != null) { %><span>Высота: <%= eq.rackUnits %> U</span><% } %>
+              <% if (eq.volume != null || eq.weight != null) { %>
+                <span>
+                  <% if (eq.volume != null) { %>Объём (ед.): <%= eq.volume %> л<% } %><% if (eq.volume != null && eq.weight != null) { %> · <% } %><% if (eq.weight != null) { %>Вес (ед.): <%= eq.weight %> кг<% } %>
+                </span>
+              <% } %>
+              <% if (eq.description) { %><span style="color:var(--text-dim);"><%= eq.description %></span><% } %>
+            </div>
+            <% if (eq.allocations.length) { %>
+              <div style="font-size:11.5px; color:var(--text-faint); display:flex; flex-direction:column; gap:3px;">
+                <% eq.allocations.forEach(function(a){ %>
+                  <div>Забронировано: <a href="/events/<%= a.event.id %>"><%= a.event.title %></a><% if (a.via) { %> (кейс «<%= a.via %>»)<% } %> — <%= a.quantity %> шт., <%= h.formatDate(a.event.startsAt) %>–<%= h.formatDate(a.event.endsAt) %></div>
+                <% }); %>
+              </div>
+            <% } %>
+            <div class="card-foot">
+              <a href="/equipment/<%= eq.id %>/edit" class="btn btn-small">Редактировать</a>
+              <form action="/equipment/<%= eq.id %>?_method=DELETE" method="POST" data-confirm="Удалить оборудование «<%= eq.name %>» из каталога?">
+                <button type="submit" class="btn btn-small btn-danger" <%= eq.allocatedTotal > 0 ? 'disabled title="Зарезервировано на мероприятии"' : '' %>>Удалить</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') -%>

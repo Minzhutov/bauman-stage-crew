@@ -11,11 +11,26 @@ function withSpeakerInfo(a) {
 }
 
 router.get('/', (req, res) => {
-  const academies = store
+  const { topic } = req.query;
+  let academies = store
     .all('academies')
     .map(withSpeakerInfo)
     .sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
-  res.render('academies/list', { title: 'Академии', academies });
+  if (topic && topic !== 'all') {
+    academies = academies.filter((a) => (a.topic || 'Другое') === topic);
+  }
+  const topicCounts = {};
+  store.all('academies').forEach((a) => {
+    const key = a.topic || 'Другое';
+    topicCounts[key] = (topicCounts[key] || 0) + 1;
+  });
+  res.render('academies/list', {
+    title: 'Академии',
+    academies,
+    topicFilter: topic && topic !== 'all' ? topic : '',
+    topicCounts,
+    topicOrder: domain.ACADEMY_TOPICS,
+  });
 });
 
 router.get('/new', requireAuth, requireContentStaff, (req, res) => {

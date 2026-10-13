@@ -12,6 +12,10 @@ public/uploads/avatars/*
 !public/uploads/avatars/.gitkeep
 public/uploads/badges/*
 !public/uploads/badges/.gitkeep
+public/uploads/equipment/*
+!public/uploads/equipment/.gitkeep
+public/uploads/cases/*
+!public/uploads/cases/.gitkeep
 .env
 *.log
 .DS_Store

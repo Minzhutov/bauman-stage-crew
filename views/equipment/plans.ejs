@@ -1,0 +1,69 @@
+<%- include('../partials/head') -%>
+<%- include('../partials/header') -%>
+
+<div class="container">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Сводка по всем мероприятиям</div>
+      <h1 style="font-size:32px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);">Комплекты</h1>
+      <p>Что сейчас собрано и забронировано по каждому запланированному мероприятию — кейсы и отдельное оборудование. Ничего не редактируется здесь: состав задаётся на странице самого мероприятия («Редактировать»).</p>
+    </div>
+  </div>
+  <%- include('../partials/equipment_nav') -%>
+
+  <% if (!events.length) { %>
+    <div class="empty"><div class="glyph">🧰</div>Ни у одного запланированного мероприятия пока не указано оборудование.</div>
+  <% } else { %>
+    <div style="display:flex; flex-direction:column; gap:18px;">
+      <% events.forEach(function(event){ %>
+        <div class="panel">
+          <div class="panel-title" style="margin-bottom:4px;">
+            <a href="/events/<%= event.id %>" style="color:var(--text);"><%= event.title %></a>
+          </div>
+          <p class="text-faint" style="margin-bottom:14px;">
+            🕒 <%= h.formatDate(event.startsAt) %> – <%= h.formatDate(event.endsAt) %>
+            <% if (event.venue) { %> · 📍 <%= event.venue.name %><% } %>
+          </p>
+
+          <% if (event.cases.length) { %>
+            <div class="position-category-label">Кейсы</div>
+            <div class="card-grid" style="margin-bottom:16px;">
+              <% event.cases.forEach(function(c){ %>
+                <div class="card" style="padding:14px;">
+                  <div class="card-top" style="margin-bottom:6px;">
+                    <h3 style="font-size:14px;"><%= c.name %></h3>
+                    <span class="badge badge-equip-<%= c.status %>"><%= domain.EQUIPMENT_STATUS_LABELS[c.status] %></span>
+                  </div>
+                  <div class="meta">
+                    <span><%= domain.CASE_TYPE_LABELS[c.type] %><% if (c.location) { %> · 📍 <%= c.location %><% } %></span>
+                    <span>Загружено: <%= c.capacityUsed %><% if (c.capacity != null) { %> из <%= c.capacity %><% } %> <%= c.capacityUnit %></span>
+                    <% c.items.forEach(function(row){ %>
+                      <span>· <%= row.quantity %> × <%= row.item.name %></span>
+                    <% }); %>
+                  </div>
+                </div>
+              <% }); %>
+            </div>
+          <% } %>
+
+          <% if (event.equipment.length) { %>
+            <div class="position-category-label">Отдельное оборудование</div>
+            <% domain.groupEquipmentByCategory(event.equipment).forEach(function(group){ %>
+              <div style="font-size:12px; color:var(--text-faint); margin:6px 0 4px;"><%= group.label %></div>
+              <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+                <% group.items.forEach(function(eq){ %>
+                  <span class="pill">
+                    <%= eq.name %> <span class="mono text-faint">× <%= eq.allocatedQuantity %></span>
+                    <span class="badge badge-equip-<%= eq.status %>" style="margin-left:4px;"><%= domain.EQUIPMENT_STATUS_LABELS[eq.status] %></span>
+                  </span>
+                <% }); %>
+              </div>
+            <% }); %>
+          <% } %>
+        </div>
+      <% }); %>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/footer') -%>

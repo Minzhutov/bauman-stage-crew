@@ -85,6 +85,65 @@
       </div>
     </fieldset>
 
+    <fieldset>
+      <legend>Кейсы</legend>
+      <p class="hint" style="margin-top:-6px; margin-bottom:14px;">Отметьте кейсы (рэки, «гробы» на колёсах и т.п.), которые поедут на мероприятие целиком — вместе со всем, что в них упаковано. Это и есть список для техников, которые будут собирать оборудование. Занятые другим мероприятием, на обслуживании или неисправные — недоступны для выбора. Каталог кейсов — в разделе «Оборудование → Кейсы».</p>
+      <p class="hint" style="margin-top:-10px; margin-bottom:14px;">Доступность считается именно на даты этого мероприятия (выше) — кейс, занятый другим мероприятием на другие даты, здесь не блокируется.</p>
+      <div class="requirement-grid">
+        <% caseRows.forEach(function(c){ %>
+          <% var busy = !c.available && !selectedCaseIds.has(c.id); %>
+          <label class="requirement-item" style="grid-template-columns: 40px 1fr 80px;<%= busy ? ' opacity:.5;' : '' %>">
+            <span class="equip-thumb">
+              <% if (c.photoFile) { %><img src="/uploads/cases/<%= c.photoFile %>" alt=""><% } else { %>🧰<% } %>
+            </span>
+            <div>
+              <div class="rname"><%= c.name %> <span class="text-faint">· <%= domain.CASE_TYPE_LABELS[c.type] %></span></div>
+              <div class="rdesc">
+                <% if (c.items.length) { %><%= c.items.map(function(r){ return r.quantity + '× ' + r.item.name; }).join(', ') %><% } else { %>пустой<% } %>
+                <% if (c.status !== 'available') { %> · <%= domain.EQUIPMENT_STATUS_LABELS[c.status] %><% } else if (c.currentEvent) { %> · занят на эти даты: <%= c.currentEvent.title %> (<%= h.formatDate(c.currentEvent.startsAt) %>–<%= h.formatDate(c.currentEvent.endsAt) %>)<% } %>
+              </div>
+            </div>
+            <input type="checkbox" name="caseIds" class="js-case-checkbox" value="<%= c.id %>" <%= selectedCaseIds.has(c.id) ? 'checked' : '' %> <%= busy ? 'disabled' : '' %> style="justify-self:center;">
+          </label>
+        <% }); %>
+        <% if (!caseRows.length) { %>
+          <p class="text-faint">Кейсов пока нет. Добавьте их в разделе «Оборудование → Кейсы».</p>
+        <% } %>
+      </div>
+      <script type="application/json" id="cases-contents-data"><%- JSON.stringify(caseRows.reduce(function(map, c){ map[c.id] = c.items.map(function(r){ return { equipmentId: r.item.id, quantity: r.quantity }; }); return map; }, {})) %></script>
+    </fieldset>
+
+    <fieldset>
+      <legend>Отдельное оборудование</legend>
+      <p class="hint" style="margin-top:-6px; margin-bottom:14px;">Позиции, которые едут не в кейсе, а отдельно. Укажите количество (0 — не берём) — больше, чем есть «на складе» на эти даты, взять нельзя: остальное уже забронировано другими мероприятиями на пересекающиеся даты (напрямую или в кейсах), на обслуживании, неисправно или утеряно.</p>
+      <% domain.groupEquipmentByCategory(equipmentRows, function(row){ return row.item.categoryId; }).forEach(function(group){ %>
+        <div class="position-category-label"><%= group.label %></div>
+        <div class="requirement-grid" style="margin-bottom:18px;">
+          <% group.items.forEach(function(row){ %>
+            <% var eq = row.item; %>
+            <div class="requirement-item" style="grid-template-columns: 40px 1fr 80px;<%= row.available === 0 && !row.selected ? ' opacity:.5;' : '' %>">
+              <span class="equip-thumb">
+                <% if (eq.photoFile) { %><img src="/uploads/equipment/<%= eq.photoFile %>" alt=""><% } else { %>📦<% } %>
+              </span>
+              <div>
+                <div class="rname"><%= eq.name %></div>
+                <div class="rdesc">
+                  <%= domain.EQUIPMENT_STATUS_LABELS[eq.status] %><% if (eq.location) { %> · <%= eq.location %><% } %> · доступно <span data-available-hint="<%= eq.id %>"><%= row.available %></span> из <%= eq.quantity %>
+                  <% if (row.packedInCases.length) { %>
+                    <br>Уже в кейсах: <%= row.packedInCases.map(function(p){ return p.quantity + '× «' + p.case.name + '»'; }).join(', ') %> — если берёте кейс целиком, отдельно выбирать не нужно.
+                  <% } %>
+                </div>
+              </div>
+              <input type="number" name="equipment_<%= eq.id %>" class="js-equipment-qty" data-equipment-id="<%= eq.id %>" data-base-available="<%= row.baseAvailable %>" min="0" max="<%= row.available %>" value="<%= row.selected %>">
+            </div>
+          <% }); %>
+        </div>
+      <% }); %>
+      <% if (!equipmentRows.length) { %>
+        <p class="text-faint">Каталог оборудования пуст. Добавьте оборудование в разделе «Оборудование».</p>
+      <% } %>
+    </fieldset>
+
     <div class="btn-group">
       <button type="submit" class="btn btn-primary"><%= event ? 'Сохранить изменения' : 'Опубликовать мероприятие' %></button>
       <a href="<%= event ? '/events/' + event.id : '/events' %>" class="btn">Отмена</a>

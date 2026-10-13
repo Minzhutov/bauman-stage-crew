@@ -71,6 +71,7 @@ app.use('/manuals', require('./routes/manuals'));
 app.use('/leaderboard', require('./routes/leaderboard'));
 app.use('/achievements', require('./routes/achievements'));
 app.use('/profile', require('./routes/profile'));
+app.use('/equipment', require('./routes/equipment'));
 app.use('/admin', require('./routes/admin'));
 
 app.use((req, res) => {
