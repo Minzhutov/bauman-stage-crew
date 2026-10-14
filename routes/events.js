@@ -59,18 +59,36 @@ function parseSignupSchedule(body, event) {
   return { comment, arrivesAt: arrivesAt.toISOString(), departsAt: departsAt.toISOString() };
 }
 
+// По умолчанию (и на любое нераспознанное значение status) показываем только
+// предстоящие — запланированные мероприятия, дата которых ещё не прошла.
+// Прошедшие по дате, но так и не закрытые (status всё ещё 'planned') —
+// отдельным фильтром «Прошедшие», а не свалены вместе с предстоящими.
 router.get('/', (req, res) => {
   const { status } = req.query;
+  const validFilters = ['upcoming', 'past', 'completed', 'cancelled', 'all'];
+  const filter = validFilters.includes(status) ? status : 'upcoming';
+  const now = Date.now();
   let events = store.all('events').map((e) => domain.eventWithDetails(e));
-  if (status && ['planned', 'completed', 'cancelled'].includes(status)) {
-    events = events.filter((e) => e.status === status);
+
+  if (filter === 'upcoming') {
+    events = events.filter((e) => e.status === 'planned' && new Date(e.endsAt).getTime() >= now);
+  } else if (filter === 'past') {
+    events = events.filter((e) => e.status === 'planned' && new Date(e.endsAt).getTime() < now);
+  } else if (filter === 'completed' || filter === 'cancelled') {
+    events = events.filter((e) => e.status === filter);
   }
-  events.sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
+  // filter === 'all' — без фильтрации
+
+  if (filter === 'past') {
+    events.sort((a, b) => new Date(b.startsAt) - new Date(a.startsAt));
+  } else {
+    events.sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
+  }
 
   res.render('events/list', {
     title: 'Мероприятия',
     events,
-    statusFilter: status || '',
+    statusFilter: filter,
   });
 });
 

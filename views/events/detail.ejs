@@ -234,7 +234,7 @@
                     </p>
                   <% } %>
                   <% if (eq.description) { %><p style="white-space:pre-wrap; margin-top:10px;"><%= eq.description %></p><% } %>
-                  <p style="margin-top:10px;"><a href="/equipment/<%= eq.id %>" class="btn btn-small">Карточка товара</a></p>
+                  <p style="margin-top:10px;"><a href="/equipment/<%= eq.id %>" class="btn btn-small">Карточка оборудования</a></p>
                   <% var eqAllocations = domain.equipmentAllocations(eq.id).filter(function(a){ return a.event.id !== event.id; }); %>
                   <% if (eqAllocations.length) { %>
                     <div style="margin-top:10px; font-size:12.5px; color:var(--text-faint);">

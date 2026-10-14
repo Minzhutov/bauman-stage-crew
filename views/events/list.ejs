@@ -13,11 +13,12 @@
     <% } %>
   </div>
 
-  <div class="btn-group" style="margin-bottom:24px;">
-    <a href="/events" class="btn btn-small <%= statusFilter === '' ? 'btn-primary' : '' %>">Все</a>
-    <a href="/events?status=planned" class="btn btn-small <%= statusFilter === 'planned' ? 'btn-primary' : '' %>">Запланированы</a>
+  <div class="btn-group" style="margin-bottom:24px; flex-wrap:wrap;">
+    <a href="/events" class="btn btn-small <%= statusFilter === 'upcoming' ? 'btn-primary' : '' %>">Предстоящие</a>
+    <a href="/events?status=past" class="btn btn-small <%= statusFilter === 'past' ? 'btn-primary' : '' %>">Прошедшие</a>
     <a href="/events?status=completed" class="btn btn-small <%= statusFilter === 'completed' ? 'btn-primary' : '' %>">Завершены</a>
     <a href="/events?status=cancelled" class="btn btn-small <%= statusFilter === 'cancelled' ? 'btn-primary' : '' %>">Отменены</a>
+    <a href="/events?status=all" class="btn btn-small <%= statusFilter === 'all' ? 'btn-primary' : '' %>">Все</a>
   </div>
 
   <% if (!events.length) { %>
