@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const store = require('../lib/store');
 const domain = require('../lib/domain');
+const format = require('../lib/format');
 const { requireAuth, requireAdmin, ROLE_LABELS } = require('../lib/auth');
 const { imageUpload } = require('../lib/uploads');
 
@@ -196,10 +197,12 @@ router.get('/seasons', (req, res) => {
 
 router.post('/seasons', (req, res) => {
   const { name, startsAt, endsAt } = req.body;
+  const startsAtDate = format.fromMoscowInput(startsAt);
+  const endsAtDate = format.fromMoscowInput(endsAt);
   const errors = [];
   if (!name || !name.trim()) errors.push('Укажите название сезона.');
   if (!startsAt || !endsAt) errors.push('Укажите начало и окончание сезона.');
-  if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {
+  if (startsAtDate && endsAtDate && endsAtDate <= startsAtDate) {
     errors.push('Окончание должно быть позже начала.');
   }
   if (errors.length) {
@@ -208,8 +211,8 @@ router.post('/seasons', (req, res) => {
   }
   store.insert('seasons', {
     name: name.trim(),
-    startsAt: new Date(startsAt).toISOString(),
-    endsAt: new Date(endsAt).toISOString(),
+    startsAt: startsAtDate.toISOString(),
+    endsAt: endsAtDate.toISOString(),
     createdBy: req.currentUser.id,
     createdAt: new Date().toISOString(),
   });

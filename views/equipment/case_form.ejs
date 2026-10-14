@@ -89,30 +89,7 @@
       </div>
     <% } %>
 
-    <fieldset>
-      <legend>Состав кейса</legend>
-      <p class="hint" style="margin-top:-6px; margin-bottom:14px;">Укажите, сколько единиц каждой позиции упаковано в этот кейс (0 — не входит). Ограничение — общее количество позиции в каталоге, а не то, что сейчас свободно.</p>
-      <div class="requirement-grid">
-        <% equipmentList.forEach(function(eq){ %>
-          <div class="requirement-item" style="grid-template-columns: 40px 1fr 80px;">
-            <span class="equip-thumb">
-              <% if (eq.photoFile) { %><img src="/uploads/equipment/<%= eq.photoFile %>" alt=""><% } else { %>📦<% } %>
-            </span>
-            <div>
-              <div class="rname"><%= eq.name %></div>
-              <div class="rdesc">
-                Всего в каталоге: <%= eq.quantity %> шт.<% if (eq.location) { %> · <%= eq.location %><% } %>
-                <% if (eq.rackUnits != null) { %> · <%= eq.rackUnits %> U<% } %><% if (eq.rackUnits == null && eq.volume != null) { %> · <%= eq.volume %> л<% } %>
-              </div>
-            </div>
-            <input type="number" name="caseitem_<%= eq.id %>" min="0" max="<%= eq.quantity %>" value="<%= selectedMap[eq.id] || 0 %>">
-          </div>
-        <% }); %>
-        <% if (!equipmentList.length) { %>
-          <p class="text-faint">Каталог оборудования пуст. Сначала добавьте позиции в разделе «Инвентарь».</p>
-        <% } %>
-      </div>
-    </fieldset>
+    <p class="hint">Это пустой контейнер — что в него упаковано, указывается отдельно под каждое мероприятие на странице «Комплекты» (один и тот же кейс может иметь разный состав на разных мероприятиях).</p>
 
     <div class="btn-group">
       <button type="submit" class="btn btn-primary"><%= item ? 'Сохранить изменения' : 'Создать кейс' %></button>

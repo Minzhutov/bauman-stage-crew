@@ -566,10 +566,14 @@ p { color: var(--text-dim); margin: 0 0 12px; }
 .badge-cancelled, .badge-rejected { color: var(--red); border-color: rgba(248,113,113,0.35); }
 .badge-pending { color: var(--amber); border-color: rgba(251,191,36,0.35); }
 .badge-equip-available { color: var(--green); border-color: rgba(52,211,153,0.35); }
+.badge-equip-in_use { color: var(--violet-bright); border-color: rgba(167,139,250,0.35); }
+.badge-equip-at_event { color: var(--amber); border-color: rgba(251,191,36,0.35); }
+.badge-equip-partially_at_event { color: var(--amber); border-color: rgba(251,191,36,0.35); }
 .badge-equip-maintenance { color: var(--amber); border-color: rgba(251,191,36,0.35); }
 .badge-equip-broken { color: var(--red); border-color: rgba(248,113,113,0.35); }
 .badge-equip-missing { color: var(--red); border-color: rgba(248,113,113,0.35); }
 .badge-transit-pending { color: var(--text-faint); }
+.badge-transit-confirmed { color: var(--violet-bright); border-color: rgba(167,139,250,0.35); }
 .badge-transit-departed { color: var(--amber); border-color: rgba(251,191,36,0.35); }
 .badge-transit-returned { color: var(--green); border-color: rgba(52,211,153,0.35); }
 
@@ -957,7 +961,7 @@ form.stack { display: flex; flex-direction: column; gap: 18px; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 label { font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); }
 input[type=text], input[type=email], input[type=password], input[type=number],
-input[type=datetime-local], input[type=tel], textarea, select {
+input[type=datetime-local], input[type=tel], input[type=search], textarea, select {
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 8px;

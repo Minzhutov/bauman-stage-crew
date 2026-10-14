@@ -17,7 +17,12 @@ const ALLOWED_EXT = new Set([
 ]);
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+  // Папка может не существовать на диске (пересборка контейнера и т.п.) —
+  // создаём её при каждой записи вместо того, чтобы падать с ENOENT.
+  destination: (req, file, cb) => {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+    cb(null, UPLOAD_DIR);
+  },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}${ext}`);

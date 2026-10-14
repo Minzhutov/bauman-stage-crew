@@ -1,0 +1,95 @@
+<%- include('../partials/head') -%>
+<%- include('../partials/header') -%>
+
+<div class="container" style="max-width:820px;">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow"><a href="/equipment" style="color:inherit;">Оборудование</a> · <%= domain.equipmentCategoryLabel(item.categoryId) %></div>
+      <h1 style="font-size:32px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);"><%= item.name %></h1>
+      <div class="pill-group" style="margin-top:8px;">
+        <span class="badge badge-equip-<%= item.displayStatus %>"><%= domain.EQUIPMENT_STATUS_LABELS[item.displayStatus] %></span>
+        <span class="pill">📦 На складе: <%= item.availableQuantity %> из <%= item.quantity %></span>
+      </div>
+    </div>
+    <% if (auth.isStaff(currentUser)) { %>
+      <div class="btn-group">
+        <form action="/equipment/<%= item.id %>/status?_method=PUT" method="POST" style="display:flex; gap:6px; align-items:center;">
+          <select name="status" data-quick-status>
+            <% domain.EQUIPMENT_STATUS_ORDER.forEach(function(key){ %>
+              <option value="<%= key %>" <%= item.status === key ? 'selected' : '' %>><%= domain.EQUIPMENT_STATUS_LABELS[key] %></option>
+            <% }); %>
+          </select>
+          <noscript><button type="submit" class="btn btn-small">OK</button></noscript>
+        </form>
+        <a href="/equipment/<%= item.id %>/edit" class="btn">Редактировать</a>
+      </div>
+    <% } %>
+  </div>
+
+  <div class="layout-2col">
+    <div>
+      <div class="panel">
+        <span class="equip-thumb" style="width:100%; height:280px; font-size:64px; border-radius:var(--radius);">
+          <% if (item.photoFile) { %><img src="/uploads/equipment/<%= item.photoFile %>" alt="<%= item.name %>"><% } else { %>📦<% } %>
+        </span>
+      </div>
+
+      <% if (item.description) { %>
+        <div class="panel">
+          <p style="color:var(--text); white-space:pre-wrap;"><%= item.description %></p>
+        </div>
+      <% } %>
+
+      <% if (item.features && item.features.length) { %>
+        <div class="panel">
+          <div class="panel-title">Особенности</div>
+          <ul style="margin:0; padding-left:20px; display:flex; flex-direction:column; gap:6px; color:var(--text);">
+            <% item.features.forEach(function(f){ %><li><%= f %></li><% }); %>
+          </ul>
+        </div>
+      <% } %>
+
+      <% if (item.specs && item.specs.length) { %>
+        <div class="panel">
+          <div class="panel-title">Технические характеристики</div>
+          <ul style="margin:0; padding-left:20px; display:flex; flex-direction:column; gap:6px; color:var(--text);">
+            <% item.specs.forEach(function(s){ %><li><%= s %></li><% }); %>
+          </ul>
+        </div>
+      <% } %>
+
+      <% if (!item.description && !(item.features && item.features.length) && !(item.specs && item.specs.length)) { %>
+        <div class="empty"><div class="glyph">📄</div>Описание ещё не заполнено — добавьте его при редактировании.</div>
+      <% } %>
+    </div>
+
+    <div>
+      <div class="panel">
+        <div class="panel-title">Характеристики</div>
+        <div class="meta" style="font-size:13px;">
+          <% if (item.dimensions) { %><span>Габариты: <%= item.dimensions %></span><% } %>
+          <% if (item.weight != null) { %><span>Вес: <%= item.weight %> кг</span><% } %>
+          <% if (item.volume != null) { %><span>Объём: <%= item.volume %> л</span><% } %>
+          <% if (item.rackUnits != null) { %><span>Высота: <%= item.rackUnits %> U</span><% } %>
+          <% if (item.location) { %><span>📍 <%= item.location %></span><% } %>
+          <% if (item.dimensions == null && item.weight == null && item.volume == null && item.rackUnits == null && !item.location) { %>
+            <span class="text-faint">Не заполнено.</span>
+          <% } %>
+        </div>
+      </div>
+
+      <% if (item.allocations.length) { %>
+        <div class="panel">
+          <div class="panel-title">Запланировано</div>
+          <div style="display:flex; flex-direction:column; gap:6px; font-size:13px;">
+            <% item.allocations.forEach(function(a){ %>
+              <div><a href="/events/<%= a.event.id %>"><%= a.event.title %></a><% if (a.via) { %> (кейс «<%= a.via %>»)<% } %> — <%= a.quantity %> шт., <%= h.formatDate(a.event.startsAt) %>–<%= h.formatDate(a.event.endsAt) %> <span class="<%= a.held ? '' : 'text-faint' %>">· <%= a.held ? 'собрано' : 'не собрано' %></span></div>
+            <% }); %>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') -%>

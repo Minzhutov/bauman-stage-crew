@@ -1,0 +1,104 @@
+<%- include('../partials/head') -%>
+<%- include('../partials/header') -%>
+
+<div class="container" style="max-width:860px;">
+  <div class="eyebrow"><a href="/equipment/plans" style="color:inherit;">Комплекты</a></div>
+  <h1 style="font-size:28px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);">Комплект: <%= event.title %></h1>
+  <p class="hint" style="margin-top:-6px;">
+    🕒 <%= h.formatDate(event.startsAt) %> – <%= h.formatDate(event.endsAt) %>
+    <a href="/events/<%= event.id %>" style="margin-left:8px;">← к мероприятию</a>
+  </p>
+  <p class="hint">Здесь только план. Пока позиция не отмечена «Собрано» (кнопка на странице мероприятия), она остаётся «на складе» в каталоге — так доступность не падает заранее из-за дальнего плана.</p>
+
+  <% var canEdit = auth.isStaff(currentUser); %>
+
+  <form action="/equipment/plans/<%= event.id %>?_method=PUT" method="POST" class="stack panel">
+    <fieldset>
+      <legend>Кейсы в комплекте</legend>
+      <p class="hint" style="margin-top:-6px; margin-bottom:14px;">Отметьте кейсы, которые едут на это мероприятие, и укажите для каждого отмеченного, что именно в него упаковано — состав свой на каждое мероприятие, а не общий для кейса. Занятые другим мероприятием на эти даты, на обслуживании или неисправные — недоступны для выбора.</p>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <% caseRows.forEach(function(c){ %>
+          <% var busy = !c.available && !c.selected; %>
+          <details class="panel" style="padding:12px 14px;" <%= c.selected ? 'open' : '' %>>
+            <summary style="display:flex; align-items:center; gap:10px; cursor:pointer;<%= busy ? ' opacity:.5;' : '' %>">
+              <input type="checkbox" name="caseIds" class="js-case-toggle" value="<%= c.id %>" <%= c.selected ? 'checked' : '' %> <%= (busy || !canEdit) ? 'disabled' : '' %>>
+              <span class="equip-thumb equip-thumb-small">
+                <% if (c.photoFile) { %><img src="/uploads/cases/<%= c.photoFile %>" alt=""><% } else { %>🧰<% } %>
+              </span>
+              <span style="flex:1;"><%= c.name %> <span class="text-faint">· <%= domain.CASE_TYPE_LABELS[c.type] %></span></span>
+              <% if (c.selected && c.transit) { %><span class="badge badge-transit-<%= c.transit %>"><%= domain.TRANSIT_LABELS[c.transit] %></span><% } %>
+              <span class="badge badge-equip-<%= c.status %>"><%= domain.EQUIPMENT_STATUS_LABELS[c.status] %></span>
+              <% if (busy) { %>
+                <span class="text-faint" style="font-size:12px;">
+                  <% if (c.status !== 'available') { %><%= domain.EQUIPMENT_STATUS_LABELS[c.status] %><% } else if (c.conflictEvent) { %>занят: <%= c.conflictEvent.title %> (<%= h.formatDate(c.conflictEvent.startsAt) %>–<%= h.formatDate(c.conflictEvent.endsAt) %>)<% } %>
+                </span>
+              <% } %>
+            </summary>
+            <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--border-soft);">
+              <p class="text-faint" style="font-size:12.5px; margin-bottom:10px;">
+                Загружено: <%= c.capacityUsed %><% if (c.capacity != null) { %> из <%= c.capacity %><% } %> <%= c.capacityUnit %>
+                <% if (c.overCapacity) { %> <span style="color:var(--red);">— превышает вместимость!</span><% } %>
+              </p>
+              <div class="requirement-grid">
+                <% equipmentRows.forEach(function(row){ %>
+                  <% var eq = row.item; %>
+                  <div class="requirement-item" style="grid-template-columns: 40px 1fr 80px;">
+                    <span class="equip-thumb">
+                      <% if (eq.photoFile) { %><img src="/uploads/equipment/<%= eq.photoFile %>" alt=""><% } else { %>📦<% } %>
+                    </span>
+                    <div>
+                      <div class="rname"><%= eq.name %></div>
+                      <div class="rdesc">свободно на эти даты: <%= row.baseAvailable %> из <%= eq.quantity %><% if (eq.rackUnits != null) { %> · <%= eq.rackUnits %> U<% } %></div>
+                    </div>
+                    <input type="number" name="caseitem_<%= c.id %>_<%= eq.id %>" min="0" max="<%= eq.quantity %>" value="<%= c.selectedMap[eq.id] || 0 %>" <%= canEdit ? '' : 'disabled' %>>
+                  </div>
+                <% }); %>
+                <% if (!equipmentRows.length) { %>
+                  <p class="text-faint">Каталог оборудования пуст.</p>
+                <% } %>
+              </div>
+            </div>
+          </details>
+        <% }); %>
+        <% if (!caseRows.length) { %>
+          <p class="text-faint">Кейсов пока нет. Добавьте их в разделе «Оборудование → Кейсы».</p>
+        <% } %>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Отдельное оборудование (не в кейсе)</legend>
+      <p class="hint" style="margin-top:-6px; margin-bottom:14px;">Позиции, которые едут не в кейсе, а отдельно. Больше, чем свободно на эти даты, взять нельзя — сюда считается и то, что уже упаковано в кейсы выше: при сохранении сумма по всему комплекту проверяется целиком.</p>
+      <% domain.groupEquipmentByCategory(equipmentRows, function(row){ return row.item.categoryId; }).forEach(function(group){ %>
+        <div class="position-category-label"><%= group.label %></div>
+        <div class="requirement-grid" style="margin-bottom:18px;">
+          <% group.items.forEach(function(row){ %>
+            <% var eq = row.item; %>
+            <div class="requirement-item" style="grid-template-columns: 40px 1fr 80px;">
+              <span class="equip-thumb">
+                <% if (eq.photoFile) { %><img src="/uploads/equipment/<%= eq.photoFile %>" alt=""><% } else { %>📦<% } %>
+              </span>
+              <div>
+                <div class="rname"><%= eq.name %> <% if (row.selected > 0 && row.transit) { %><span class="badge badge-transit-<%= row.transit %>" style="margin-left:4px;"><%= domain.TRANSIT_LABELS[row.transit] %></span><% } %></div>
+                <div class="rdesc"><%= domain.EQUIPMENT_STATUS_LABELS[eq.status] %><% if (eq.location) { %> · <%= eq.location %><% } %> · свободно на эти даты <%= row.baseAvailable %> из <%= eq.quantity %></div>
+              </div>
+              <input type="number" name="equipment_<%= eq.id %>" min="0" max="<%= eq.quantity %>" value="<%= row.selected %>" <%= canEdit ? '' : 'disabled' %>>
+            </div>
+          <% }); %>
+        </div>
+      <% }); %>
+      <% if (!equipmentRows.length) { %>
+        <p class="text-faint">Каталог оборудования пуст. Добавьте оборудование в разделе «Оборудование».</p>
+      <% } %>
+    </fieldset>
+
+    <% if (canEdit) { %>
+      <div class="btn-group">
+        <button type="submit" class="btn btn-primary">Сохранить комплект</button>
+        <a href="/equipment/plans" class="btn">К списку</a>
+      </div>
+    <% } %>
+  </form>
+</div>
+
+<%- include('../partials/footer') -%>

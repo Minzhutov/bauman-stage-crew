@@ -2,6 +2,7 @@
 const express = require('express');
 const store = require('../lib/store');
 const domain = require('../lib/domain');
+const format = require('../lib/format');
 const { requireAuth, requireStaff, requireContentStaff } = require('../lib/auth');
 
 const router = express.Router();
@@ -39,11 +40,13 @@ router.get('/new', requireAuth, requireContentStaff, (req, res) => {
 
 router.post('/', requireAuth, requireContentStaff, (req, res) => {
   const { title, topic, description, room, speaker, startsAt, endsAt } = req.body;
+  const startsAtDate = format.fromMoscowInput(startsAt);
+  const endsAtDate = format.fromMoscowInput(endsAt);
   const errors = [];
   if (!title || !title.trim()) errors.push('Укажите тему лекции.');
   if (!room || !room.trim()) errors.push('Укажите аудиторию.');
   if (!startsAt || !endsAt) errors.push('Укажите время начала и окончания.');
-  if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {
+  if (startsAtDate && endsAtDate && endsAtDate <= startsAtDate) {
     errors.push('Время окончания должно быть позже времени начала.');
   }
   if (errors.length) {
@@ -61,8 +64,8 @@ router.post('/', requireAuth, requireContentStaff, (req, res) => {
     description: (description || '').trim(),
     room: room.trim(),
     speaker: (speaker || '').trim(),
-    startsAt: new Date(startsAt).toISOString(),
-    endsAt: new Date(endsAt).toISOString(),
+    startsAt: startsAtDate.toISOString(),
+    endsAt: endsAtDate.toISOString(),
     createdBy: req.currentUser.id,
     createdAt: new Date().toISOString(),
   });
@@ -159,9 +162,11 @@ router.put('/:id', requireAuth, requireStaff, (req, res) => {
     return res.redirect('/academies');
   }
   const { title, topic, description, room, speaker, startsAt, endsAt } = req.body;
+  const startsAtDate = format.fromMoscowInput(startsAt);
+  const endsAtDate = format.fromMoscowInput(endsAt);
   const errors = [];
   if (!title || !title.trim()) errors.push('Укажите тему лекции.');
-  if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {
+  if (startsAtDate && endsAtDate && endsAtDate <= startsAtDate) {
     errors.push('Время окончания должно быть позже времени начала.');
   }
   if (errors.length) {
@@ -179,8 +184,8 @@ router.put('/:id', requireAuth, requireStaff, (req, res) => {
     description: (description || '').trim(),
     room: room.trim(),
     speaker: (speaker || '').trim(),
-    startsAt: new Date(startsAt).toISOString(),
-    endsAt: new Date(endsAt).toISOString(),
+    startsAt: startsAtDate.toISOString(),
+    endsAt: endsAtDate.toISOString(),
   });
 
   req.flash('success', 'Лекция обновлена.');

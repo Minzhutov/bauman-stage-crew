@@ -15,6 +15,9 @@
     <% if (domain.canManageEvent(currentUser, event)) { %>
       <div class="btn-group">
         <a href="/events/<%= event.id %>/edit" class="btn">Редактировать</a>
+        <% if (auth.isStaff(currentUser)) { %>
+          <a href="/equipment/plans/<%= event.id %>" class="btn">Комплект оборудования</a>
+        <% } %>
         <% if (currentUser.role === 'admin') { %>
           <form action="/events/<%= event.id %>?_method=DELETE" method="POST" data-confirm="Удалить мероприятие безвозвратно?">
             <button type="submit" class="btn btn-danger">Удалить</button>
@@ -190,6 +193,12 @@
                   <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:6px 4px 0;">
                     <span class="badge badge-transit-<%= eq.transit %>"><%= domain.TRANSIT_LABELS[eq.transit] %></span>
                     <% if (domain.canManageEvent(currentUser, event)) { %>
+                      <% if (eq.transit === 'pending') { %>
+                        <form action="/events/<%= event.id %>/equipment/<%= eq.id %>/transit?_method=PUT" method="POST">
+                          <input type="hidden" name="action" value="confirm">
+                          <button type="submit" class="btn btn-small">Собрано</button>
+                        </form>
+                      <% } %>
                       <% if (eq.transit !== 'departed') { %>
                         <form action="/events/<%= event.id %>/equipment/<%= eq.id %>/transit?_method=PUT" method="POST">
                           <input type="hidden" name="action" value="depart">
@@ -225,12 +234,13 @@
                     </p>
                   <% } %>
                   <% if (eq.description) { %><p style="white-space:pre-wrap; margin-top:10px;"><%= eq.description %></p><% } %>
+                  <p style="margin-top:10px;"><a href="/equipment/<%= eq.id %>" class="btn btn-small">Карточка товара</a></p>
                   <% var eqAllocations = domain.equipmentAllocations(eq.id).filter(function(a){ return a.event.id !== event.id; }); %>
                   <% if (eqAllocations.length) { %>
                     <div style="margin-top:10px; font-size:12.5px; color:var(--text-faint);">
-                      <div style="margin-bottom:4px;">Также забронировано:</div>
+                      <div style="margin-bottom:4px;">Также запланировано:</div>
                       <% eqAllocations.forEach(function(a){ %>
-                        <div><a href="/events/<%= a.event.id %>"><%= a.event.title %></a> — <%= h.formatDate(a.event.startsAt) %>–<%= h.formatDate(a.event.endsAt) %></div>
+                        <div><a href="/events/<%= a.event.id %>"><%= a.event.title %></a> — <%= h.formatDate(a.event.startsAt) %>–<%= h.formatDate(a.event.endsAt) %> · <%= a.held ? 'собрано' : 'не собрано' %></div>
                       <% }); %>
                     </div>
                   <% } %>
@@ -259,6 +269,12 @@
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:6px 4px 0;">
                   <span class="badge badge-transit-<%= c.transit %>"><%= domain.TRANSIT_LABELS[c.transit] %></span>
                   <% if (domain.canManageEvent(currentUser, event)) { %>
+                    <% if (c.transit === 'pending') { %>
+                      <form action="/events/<%= event.id %>/cases/<%= c.id %>/transit?_method=PUT" method="POST">
+                        <input type="hidden" name="action" value="confirm">
+                        <button type="submit" class="btn btn-small">Собрано</button>
+                      </form>
+                    <% } %>
                     <% if (c.transit !== 'departed') { %>
                       <form action="/events/<%= event.id %>/cases/<%= c.id %>/transit?_method=PUT" method="POST">
                         <input type="hidden" name="action" value="depart">
@@ -298,7 +314,7 @@
                 <% var caseAllocations = c.allocations.filter(function(e){ return e.id !== event.id; }); %>
                 <% if (caseAllocations.length) { %>
                   <div style="margin-top:10px; font-size:12.5px; color:var(--text-faint);">
-                    <div style="margin-bottom:4px;">Также забронирован:</div>
+                    <div style="margin-bottom:4px;">Также запланирован:</div>
                     <% caseAllocations.forEach(function(e){ %>
                       <div><a href="/events/<%= e.id %>"><%= e.title %></a> — <%= h.formatDate(e.startsAt) %>–<%= h.formatDate(e.endsAt) %></div>
                     <% }); %>
@@ -404,10 +420,17 @@
               <%= m.user ? m.user.fullName.trim().charAt(0).toUpperCase() : '?' %>
             <% } %>
           </span>
-          <div style="min-width:0;">
-            <div style="font-size:12.5px;">
-              <% if (m.user) { %><a href="/profile/<%= m.user.id %>" style="color:var(--text); font-weight:700;"><%= m.user.fullName %></a><% } else { %><span class="text-faint">Удалённый пользователь</span><% } %>
-              <span class="text-faint"> · <%= h.formatDateTime(m.createdAt) %></span>
+          <div style="min-width:0; flex:1;">
+            <div style="font-size:12.5px; display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+              <span>
+                <% if (m.user) { %><a href="/profile/<%= m.user.id %>" style="color:var(--text); font-weight:700;"><%= m.user.fullName %></a><% } else { %><span class="text-faint">Удалённый пользователь</span><% } %>
+                <span class="text-faint"> · <%= h.formatDateTime(m.createdAt) %></span>
+              </span>
+              <% if (currentUser && currentUser.role === 'admin') { %>
+                <form action="/events/<%= event.id %>/chat/<%= m.id %>?_method=DELETE" method="POST" data-confirm="Удалить сообщение?">
+                  <button type="submit" class="avatar-action-btn avatar-action-danger" style="flex-shrink:0;">Удалить</button>
+                </form>
+              <% } %>
             </div>
             <div style="font-size:13.5px; white-space:pre-wrap; overflow-wrap:anywhere;"><%= m.text %></div>
           </div>

@@ -19,164 +19,12 @@ function parseRequiredPositions(body) {
     .filter((r) => Number.isFinite(r.positionId) && r.count > 0);
 }
 
-function parseEquipmentAllocations(body) {
-  // "equipment_<id>", а не "equipment[<id>]" — та же причина, что у positions_<id>
-  const prefix = 'equipment_';
-  return Object.keys(body)
-    .filter((key) => key.startsWith(prefix))
-    .map((key) => ({
-      equipmentId: Number(key.slice(prefix.length)),
-      quantity: parseInt(body[key], 10) || 0,
-    }))
-    .filter((r) => Number.isFinite(r.equipmentId) && r.quantity > 0);
-}
-
-// Диапазон дат мероприятия из тела формы — для проверки доступности оборудования
-// именно на эти даты, а не вообще (см. domain.equipmentAvailableQuantity).
-function dateRangeFromBody(body) {
-  if (!body.startsAt || !body.endsAt) return null;
-  return { startsAt: body.startsAt, endsAt: body.endsAt };
-}
-
-// Сколько единиц позиции equipmentId уже упаковано в кейсах из набора caseIds
-// (выбранных на ЭТОМ ЖЕ мероприятии) — если кейс и так едет целиком, те же
-// единицы нельзя ещё раз взять отдельной строкой, иначе это задвоение одного
-// и того же физического оборудования в рамках одного мероприятия.
-function packedInSelectedCases(equipmentId, selectedCaseIds) {
-  if (!selectedCaseIds || !selectedCaseIds.size) return 0;
-  return store
-    .all('cases')
-    .filter((c) => selectedCaseIds.has(c.id))
-    .reduce((sum, c) => {
-      const row = (c.items || []).find((r) => r.equipmentId === equipmentId);
-      return sum + (row ? row.quantity : 0);
-    }, 0);
-}
-
-// Каталог оборудования со сколько ещё можно взять на эти даты мероприятия
-// (excludeEventId — редактируемое мероприятие, его же текущая доля не в счёт)
-// и сколько уже выбрано в текущей форме (selectedMap: equipmentId -> quantity).
-// baseAvailable — доступность без учёта кейсов, выбранных на этом же
-// мероприятии (нужна JS на клиенте, чтобы живо пересчитывать max при
-// переключении кейсов); available — она же за минусом того, что уже
-// упаковано в выбранные сейчас кейсы (чтобы не выбрать те же единицы дважды).
-// Статус оборудования (на складе сейчас или нет) не важен для дат мероприятия
-// в будущем — важно только отсутствие пересечения по датам с другой бронью
-// (и что оборудование не на обслуживании/неисправно/утеряно).
-function buildEquipmentRows(excludeEventId, selectedMap, dateRange, selectedCaseIds) {
-  const allCases = store.all('cases');
-  return store.all('equipment').map((item) => {
-    // В каких кейсах каталога эта позиция уже упакована — чтобы на форме не
-    // выбрать её ещё раз отдельно, если кейс с ней и так едет на мероприятие.
-    const packedInCases = allCases
-      .map((c) => {
-        const row = (c.items || []).find((r) => r.equipmentId === item.id);
-        return row ? { case: c, quantity: row.quantity } : null;
-      })
-      .filter(Boolean);
-    const baseAvailable = domain.equipmentAvailableQuantity(item, excludeEventId, dateRange);
-    const packed = packedInSelectedCases(item.id, selectedCaseIds);
-    return {
-      item,
-      selected: (selectedMap && selectedMap[item.id]) || 0,
-      baseAvailable,
-      available: Math.max(0, baseAvailable - packed),
-      packedInCases,
-    };
-  });
-}
-
-function equipmentAllocationsMap(allocations) {
-  const map = {};
-  allocations.forEach((r) => { map[r.equipmentId] = r.quantity; });
-  return map;
-}
-
-function validateEquipmentAllocations(allocations, excludeEventId, dateRange, selectedCaseIds) {
-  const errors = [];
-  allocations.forEach((row) => {
-    const item = store.find('equipment', row.equipmentId);
-    if (!item) return;
-    const baseAvailable = domain.equipmentAvailableQuantity(item, excludeEventId, dateRange);
-    const packed = packedInSelectedCases(item.id, selectedCaseIds);
-    const available = Math.max(0, baseAvailable - packed);
-    if (row.quantity > available) {
-      if (packed > 0) {
-        errors.push(`«${item.name}»: запрошено ${row.quantity} отдельно, но ${packed} шт. уже упаковано в выбранных кейсах — всего на складе ${baseAvailable}, нельзя взять те же единицы дважды.`);
-      } else {
-        errors.push(`«${item.name}»: запрошено ${row.quantity}, доступно только ${available}.`);
-      }
-    }
-  });
-  return errors;
-}
-
-function parseCaseIds(body) {
-  const raw = body.caseIds;
-  const list = Array.isArray(raw) ? raw : raw ? [raw] : [];
-  return list.map((v) => Number(v)).filter((id) => Number.isFinite(id));
-}
-
-// Кейсы со статусом доступности на даты мероприятия (excludeEventId — само
-// редактируемое мероприятие: его же текущий кейс не считается «занятым»).
-function buildCaseRows(excludeEventId, dateRange) {
-  return store.all('cases').map((item) => domain.caseWithContents(item, excludeEventId, dateRange));
-}
-
-function validateCaseSelection(caseIds, excludeEventId, dateRange) {
-  const errors = [];
-  caseIds.forEach((id) => {
-    const item = store.find('cases', id);
-    if (!item) return;
-    if (item.status !== 'available') {
-      errors.push(`Кейс «${item.name}»: ${domain.EQUIPMENT_STATUS_LABELS[item.status].toLowerCase()}.`);
-      return;
-    }
-    const busyWith = domain.caseCurrentEvent(item.id, excludeEventId, dateRange);
-    if (busyWith) {
-      errors.push(`Кейс «${item.name}» на эти даты уже занят мероприятием «${busyWith.title}» (${format.formatDate(busyWith.startsAt)} – ${format.formatDate(busyWith.endsAt)}).`);
-    }
-  });
-  return errors;
-}
-
-// При пересохранении формы переносим отметки «уехало/приехало» со старых
-// строк на новые по тому же ключу (equipmentId/caseId) — форма мероприятия
-// меняет только состав и количества, а не статус перемещения.
-function mergeEquipmentTransit(allocations, oldRows) {
-  const oldByKey = new Map((oldRows || []).map((r) => [r.equipmentId, r]));
-  return allocations.map((r) => {
-    const old = oldByKey.get(r.equipmentId);
-    return {
-      equipmentId: r.equipmentId,
-      quantity: r.quantity,
-      departedAt: old ? old.departedAt || null : null,
-      returnedAt: old ? old.returnedAt || null : null,
-    };
-  });
-}
-
-function mergeCaseTransit(caseIds, oldRows) {
-  const oldByKey = new Map((oldRows || []).map((r) => [r.caseId, r]));
-  return caseIds.map((id) => {
-    const old = oldByKey.get(id);
-    return {
-      caseId: id,
-      departedAt: old ? old.departedAt || null : null,
-      returnedAt: old ? old.returnedAt || null : null,
-    };
-  });
-}
-
 function eventFormLocals(overrides) {
   return Object.assign(
     {
       title: 'Новое мероприятие',
       positions: store.all('positions'),
       venues: store.all('venues'),
-      equipmentRows: [],
-      caseRows: [],
-      selectedCaseIds: new Set(),
       techDirectors: store.where('users', (u) => u.role === 'tech_director' || u.role === 'admin'),
       form: {},
       event: null,
@@ -200,8 +48,8 @@ function parseSignupSchedule(body, event) {
   const comment = (body.comment || '').trim().slice(0, 500);
   const eventStart = new Date(event.startsAt);
   const eventEnd = new Date(event.endsAt);
-  let arrivesAt = body.arrivesAt ? new Date(body.arrivesAt) : null;
-  let departsAt = body.departsAt ? new Date(body.departsAt) : null;
+  let arrivesAt = body.arrivesAt ? format.fromMoscowInput(body.arrivesAt) : null;
+  let departsAt = body.departsAt ? format.fromMoscowInput(body.departsAt) : null;
   if (!arrivesAt || Number.isNaN(arrivesAt.getTime()) || arrivesAt < eventStart || arrivesAt > eventEnd) {
     arrivesAt = eventStart;
   }
@@ -227,20 +75,18 @@ router.get('/', (req, res) => {
 });
 
 router.get('/new', requireAuth, requireStaff, (req, res) => {
-  res.render('events/form', eventFormLocals({
-    title: 'Новое мероприятие',
-    equipmentRows: buildEquipmentRows(null, {}, null, new Set()),
-    caseRows: buildCaseRows(null),
-  }));
+  res.render('events/form', eventFormLocals({ title: 'Новое мероприятие' }));
 });
 
 router.post('/', requireAuth, requireStaff, (req, res) => {
   const { title, description, venueId, startsAt, endsAt } = req.body;
+  const startsAtDate = format.fromMoscowInput(startsAt);
+  const endsAtDate = format.fromMoscowInput(endsAt);
   const errors = [];
   if (!title || !title.trim()) errors.push('Укажите название мероприятия.');
   if (!venueId) errors.push('Выберите место проведения.');
   if (!startsAt || !endsAt) errors.push('Укажите время начала и окончания.');
-  if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {
+  if (startsAtDate && endsAtDate && endsAtDate <= startsAtDate) {
     errors.push('Время окончания должно быть позже времени начала.');
   }
 
@@ -249,27 +95,13 @@ router.post('/', requireAuth, requireStaff, (req, res) => {
     errors.push('Укажите хотя бы одну требуемую должность и количество специалистов.');
   }
 
-  const dateRange = dateRangeFromBody(req.body);
-  const caseIds = parseCaseIds(req.body);
-  const selectedCaseIds = new Set(caseIds);
-  const equipmentAllocations = parseEquipmentAllocations(req.body);
-  errors.push(...validateEquipmentAllocations(equipmentAllocations, null, dateRange, selectedCaseIds));
-  errors.push(...validateCaseSelection(caseIds, null, dateRange));
-
   if (errors.length) {
     errors.forEach((e) => req.flash('error', e));
     const requiredMap = {};
     requiredPositions.forEach((r) => { requiredMap[r.positionId] = r.count; });
     return res.status(400).render(
       'events/form',
-      eventFormLocals({
-        title: 'Новое мероприятие',
-        form: req.body,
-        requiredMap,
-        equipmentRows: buildEquipmentRows(null, equipmentAllocationsMap(equipmentAllocations), dateRange, selectedCaseIds),
-        caseRows: buildCaseRows(null, dateRange),
-        selectedCaseIds,
-      })
+      eventFormLocals({ title: 'Новое мероприятие', form: req.body, requiredMap })
     );
   }
 
@@ -284,12 +116,14 @@ router.post('/', requireAuth, requireStaff, (req, res) => {
     title: title.trim(),
     description: (description || '').trim(),
     venueId: Number(venueId),
-    startsAt: new Date(startsAt).toISOString(),
-    endsAt: new Date(endsAt).toISOString(),
+    startsAt: startsAtDate.toISOString(),
+    endsAt: endsAtDate.toISOString(),
     status: 'planned',
     requiredPositions,
-    equipment: equipmentAllocations.map((r) => ({ ...r, departedAt: null, returnedAt: null })),
-    cases: caseIds.map((id) => ({ caseId: id, departedAt: null, returnedAt: null })),
+    // Комплект (кейсы и отдельное оборудование) собирается отдельно на
+    // странице «Комплекты» — после создания мероприятия, когда уже есть его id.
+    equipment: [],
+    cases: [],
     techDirectorId,
     createdBy: req.currentUser.id,
     createdAt: new Date().toISOString(),
@@ -348,14 +182,6 @@ router.get('/:id/edit', requireAuth, (req, res) => {
       event: domain.eventWithDetails(event),
       form: event,
       requiredMap,
-      equipmentRows: buildEquipmentRows(
-        event.id,
-        equipmentAllocationsMap(event.equipment || []),
-        { startsAt: event.startsAt, endsAt: event.endsAt },
-        new Set((event.cases || []).map((r) => r.caseId))
-      ),
-      caseRows: buildCaseRows(event.id, { startsAt: event.startsAt, endsAt: event.endsAt }),
-      selectedCaseIds: new Set((event.cases || []).map((r) => r.caseId)),
     })
   );
 });
@@ -371,9 +197,11 @@ router.put('/:id', requireAuth, (req, res) => {
     return res.redirect(`/events/${event.id}`);
   }
   const { title, description, venueId, startsAt, endsAt, status } = req.body;
+  const startsAtDate = format.fromMoscowInput(startsAt);
+  const endsAtDate = format.fromMoscowInput(endsAt);
   const errors = [];
   if (!title || !title.trim()) errors.push('Укажите название мероприятия.');
-  if (startsAt && endsAt && new Date(endsAt) <= new Date(startsAt)) {
+  if (startsAtDate && endsAtDate && endsAtDate <= startsAtDate) {
     errors.push('Время окончания должно быть позже времени начала.');
   }
   const requiredPositions = parseRequiredPositions(req.body);
@@ -381,28 +209,13 @@ router.put('/:id', requireAuth, (req, res) => {
     errors.push('Укажите хотя бы одну требуемую должность и количество специалистов.');
   }
 
-  const dateRange = dateRangeFromBody(req.body) || { startsAt: event.startsAt, endsAt: event.endsAt };
-  const caseIds = parseCaseIds(req.body);
-  const selectedCaseIds = new Set(caseIds);
-  const equipmentAllocations = parseEquipmentAllocations(req.body);
-  errors.push(...validateEquipmentAllocations(equipmentAllocations, event.id, dateRange, selectedCaseIds));
-  errors.push(...validateCaseSelection(caseIds, event.id, dateRange));
-
   if (errors.length) {
     errors.forEach((e) => req.flash('error', e));
     const requiredMap = {};
     requiredPositions.forEach((r) => { requiredMap[r.positionId] = r.count; });
     return res.status(400).render(
       'events/form',
-      eventFormLocals({
-        title: 'Редактирование мероприятия',
-        event,
-        form: req.body,
-        requiredMap,
-        equipmentRows: buildEquipmentRows(event.id, equipmentAllocationsMap(equipmentAllocations), dateRange, selectedCaseIds),
-        caseRows: buildCaseRows(event.id, dateRange),
-        selectedCaseIds,
-      })
+      eventFormLocals({ title: 'Редактирование мероприятия', event, form: req.body, requiredMap })
     );
   }
 
@@ -410,29 +223,23 @@ router.put('/:id', requireAuth, (req, res) => {
   const techDirectorId = req.currentUser.role === 'admin' ? parseTechDirectorId(req.body) : event.techDirectorId;
   const nextStatus = status || event.status;
 
-  // Сохраняет отметки «уехало/приехало» со старых строк — эта форма меняет
-  // только состав и количества, а не статус перемещения (см. /transit).
-  const mergedEquipment = mergeEquipmentTransit(equipmentAllocations, event.equipment);
-  const mergedCases = mergeCaseTransit(caseIds, event.cases);
-
+  // Комплект (кейсы и отдельное оборудование) эта форма не трогает — он
+  // собирается отдельно на странице «Комплекты», поэтому ниже просто
+  // переиспользуем уже сохранённые event.equipment/event.cases как есть.
   // Мероприятие закрывается/отменяется — если что-то отмечено «уехало», но
   // не «вернулось», это потеря: статус в каталоге автоматически — «Утеряно».
   const flaggedMissing = (nextStatus === 'completed' || nextStatus === 'cancelled')
-    ? domain.flagUnreturnedAsMissing(mergedEquipment, mergedCases)
+    ? domain.flagUnreturnedAsMissing(event.equipment, event.cases)
     : [];
 
   store.update('events', event.id, {
     title: title.trim(),
     description: (description || '').trim(),
     venueId: Number(venueId),
-    startsAt: new Date(startsAt).toISOString(),
-    endsAt: new Date(endsAt).toISOString(),
+    startsAt: startsAtDate.toISOString(),
+    endsAt: endsAtDate.toISOString(),
     status: nextStatus,
     requiredPositions,
-    // Хранится независимо от статуса (история «что ехало») — в резерв идёт
-    // только у запланированных мероприятий, см. equipmentAllocatedQuantity.
-    equipment: mergedEquipment,
-    cases: mergedCases,
     techDirectorId,
   });
 
@@ -455,15 +262,25 @@ router.delete('/:id', requireAuth, requireAdmin, (req, res) => {
   res.redirect('/events');
 });
 
-// --- Отметки «уехало» / «приехало» — отслеживание перемещения оборудования и кейсов ---
+// --- Отметки «собрано» / «уехало» / «приехало» — отслеживание перемещения
+// оборудования и кейсов. «Собрано» — отдельный шаг до «уехало»: именно он
+// переводит позицию из «запланировано» в «реально отложено под мероприятие»
+// и только с этого момента она пропадает из «на складе» в каталоге (см.
+// domain.isHeld) — планирование на будущую дату само по себе склад не трогает.
 
 function applyTransitAction(row, action) {
-  if (action === 'depart') {
+  if (action === 'confirm') {
+    row.confirmedAt = new Date().toISOString();
+  } else if (action === 'depart') {
+    // «Уехало» без явного «собрано» перед этим — считаем собранным задним
+    // числом: раз оно уехало, значит точно было физически отложено.
+    if (!row.confirmedAt) row.confirmedAt = new Date().toISOString();
     row.departedAt = new Date().toISOString();
     row.returnedAt = null;
   } else if (action === 'arrive') {
     row.returnedAt = new Date().toISOString();
   } else if (action === 'reset') {
+    row.confirmedAt = null;
     row.departedAt = null;
     row.returnedAt = null;
   }
@@ -685,6 +502,17 @@ router.post('/:id/chat', requireAuth, (req, res) => {
     createdAt: new Date().toISOString(),
   });
   res.redirect(`/events/${event.id}`);
+});
+
+router.delete('/:id/chat/:messageId', requireAuth, requireAdmin, (req, res) => {
+  const message = store.find('eventMessages', req.params.messageId);
+  if (!message || message.eventId !== Number(req.params.id)) {
+    req.flash('error', 'Сообщение не найдено.');
+    return res.redirect(`/events/${req.params.id}`);
+  }
+  store.remove('eventMessages', message.id);
+  req.flash('success', 'Сообщение удалено.');
+  res.redirect(`/events/${req.params.id}`);
 });
 
 module.exports = router;

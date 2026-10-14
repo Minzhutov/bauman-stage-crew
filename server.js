@@ -9,12 +9,15 @@ const methodOverride = require('method-override');
 
 const store = require('./lib/store');
 const { seed } = require('./lib/seed');
+const { migrateCaseContentsToEvents, migrateLegacyCaseTypes } = require('./lib/migrate');
 const auth = require('./lib/auth');
 const { loadCurrentUser } = auth;
 const format = require('./lib/format');
 const domain = require('./lib/domain');
 
 seed();
+migrateCaseContentsToEvents();
+migrateLegacyCaseTypes();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -52,7 +55,7 @@ app.locals.auth = auth;
 app.locals.APP_NAME = 'Bauman Stage Crew';
 app.use((req, res, next) => {
   res.locals.currentPath = req.path;
-  // читаем flash перед самим рендером, а не здесь сразу — некоторые роуты
+  // читаем flash перед самим рендером, а не здесь сразу - некоторые роуты
   // (/register и т.п.) рендерят без redirect, уже после req.flash('error', ...)
   const originalRender = res.render.bind(res);
   res.render = (view, options, callback) => {

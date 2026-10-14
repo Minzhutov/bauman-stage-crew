@@ -4,26 +4,35 @@
 <div class="container">
   <div class="section-head">
     <div>
-      <div class="eyebrow">Сводка по всем мероприятиям</div>
+      <div class="eyebrow">По каждому запланированному мероприятию</div>
       <h1 style="font-size:32px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);">Комплекты</h1>
-      <p>Что сейчас собрано и забронировано по каждому запланированному мероприятию — кейсы и отдельное оборудование. Ничего не редактируется здесь: состав задаётся на странице самого мероприятия («Редактировать»).</p>
+      <p>Кейсы, заполненные оборудованием под конкретное мероприятие, плюс отдельные позиции без кейса. Один и тот же кейс может иметь разный состав на разных мероприятиях — сборка и редактирование состава происходит здесь, а не в карточке самого кейса.</p>
     </div>
   </div>
   <%- include('../partials/equipment_nav') -%>
 
   <% if (!events.length) { %>
-    <div class="empty"><div class="glyph">🧰</div>Ни у одного запланированного мероприятия пока не указано оборудование.</div>
+    <div class="empty"><div class="glyph">🧰</div>Нет запланированных мероприятий.</div>
   <% } else { %>
     <div style="display:flex; flex-direction:column; gap:18px;">
       <% events.forEach(function(event){ %>
         <div class="panel">
-          <div class="panel-title" style="margin-bottom:4px;">
-            <a href="/events/<%= event.id %>" style="color:var(--text);"><%= event.title %></a>
+          <div class="section-head" style="margin-bottom:4px; align-items:flex-start;">
+            <div class="panel-title" style="margin-bottom:0;">
+              <a href="/events/<%= event.id %>" style="color:var(--text);"><%= event.title %></a>
+            </div>
+            <% if (auth.isStaff(currentUser)) { %>
+              <a href="/equipment/plans/<%= event.id %>" class="btn btn-small">Собрать комплект</a>
+            <% } %>
           </div>
           <p class="text-faint" style="margin-bottom:14px;">
             🕒 <%= h.formatDate(event.startsAt) %> – <%= h.formatDate(event.endsAt) %>
             <% if (event.venue) { %> · 📍 <%= event.venue.name %><% } %>
           </p>
+
+          <% if (!event.cases.length && !event.equipment.length) { %>
+            <p class="text-faint">Комплект пока не собран.</p>
+          <% } %>
 
           <% if (event.cases.length) { %>
             <div class="position-category-label">Кейсы</div>
@@ -32,7 +41,7 @@
                 <div class="card" style="padding:14px;">
                   <div class="card-top" style="margin-bottom:6px;">
                     <h3 style="font-size:14px;"><%= c.name %></h3>
-                    <span class="badge badge-equip-<%= c.status %>"><%= domain.EQUIPMENT_STATUS_LABELS[c.status] %></span>
+                    <span class="badge badge-transit-<%= c.transit %>"><%= domain.TRANSIT_LABELS[c.transit] %></span>
                   </div>
                   <div class="meta">
                     <span><%= domain.CASE_TYPE_LABELS[c.type] %><% if (c.location) { %> · 📍 <%= c.location %><% } %></span>
@@ -54,7 +63,7 @@
                 <% group.items.forEach(function(eq){ %>
                   <span class="pill">
                     <%= eq.name %> <span class="mono text-faint">× <%= eq.allocatedQuantity %></span>
-                    <span class="badge badge-equip-<%= eq.status %>" style="margin-left:4px;"><%= domain.EQUIPMENT_STATUS_LABELS[eq.status] %></span>
+                    <span class="badge badge-transit-<%= eq.transit %>" style="margin-left:4px;"><%= domain.TRANSIT_LABELS[eq.transit] %></span>
                   </span>
                 <% }); %>
               </div>

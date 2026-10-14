@@ -38,7 +38,7 @@
       <a href="/academies" class="<%= currentPath.startsWith('/academies') ? 'active' : '' %>">Академии</a>
       <a href="/manuals" class="<%= currentPath.startsWith('/manuals') ? 'active' : '' %>">Мануалы</a>
       <a href="/leaderboard" class="<%= currentPath.startsWith('/leaderboard') ? 'active' : '' %>">Таблица лидеров</a>
-      <% if (auth.isStaff(currentUser)) { %>
+      <% if (auth.isContentStaff(currentUser)) { %>
         <a href="/equipment" class="<%= currentPath.startsWith('/equipment') ? 'active' : '' %>">Оборудование</a>
       <% } %>
       <% if (currentUser && currentUser.role === 'admin') { %>

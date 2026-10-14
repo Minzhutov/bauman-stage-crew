@@ -179,38 +179,44 @@
     sync();
   })();
 
-  // Форма мероприятия: выбор кейса сразу уменьшает "доступно" у отдельного
-  // оборудования, упакованного в этот кейс — чтобы нельзя было визуально
-  // набрать те же физические единицы и кейсом, и отдельной строкой сразу.
+  // Страница сборки комплекта (/equipment/plans/:eventId): отметил кейс —
+  // сразу раскрылся его блок с составом, снял отметку — свернулся обратно.
+  // stopPropagation на самом чекбоксе — чтобы клик не дублировался нативным
+  // тогглом <summary> (он и так срабатывает на клик по чекбоксу внутри него).
   (function () {
-    var dataEl = document.getElementById('cases-contents-data');
-    var caseCheckboxes = document.querySelectorAll('.js-case-checkbox');
-    var qtyInputs = document.querySelectorAll('.js-equipment-qty');
-    if (!dataEl || !caseCheckboxes.length || !qtyInputs.length) return;
-    var caseContents = JSON.parse(dataEl.textContent || '{}');
-    function recompute() {
-      var packedTotals = {};
-      caseCheckboxes.forEach(function (cb) {
-        if (!cb.checked) return;
-        (caseContents[cb.value] || []).forEach(function (row) {
-          packedTotals[row.equipmentId] = (packedTotals[row.equipmentId] || 0) + row.quantity;
-        });
+    document.querySelectorAll('.js-case-toggle').forEach(function (cb) {
+      cb.addEventListener('click', function (e) { e.stopPropagation(); });
+      cb.addEventListener('change', function () {
+        var details = cb.closest('details');
+        if (details) details.open = cb.checked;
       });
-      qtyInputs.forEach(function (input) {
-        var eqId = input.getAttribute('data-equipment-id');
-        var base = Number(input.getAttribute('data-base-available')) || 0;
-        var packed = packedTotals[eqId] || 0;
-        var newMax = Math.max(0, base - packed);
-        input.setAttribute('max', newMax);
-        if (Number(input.value) > newMax) {
-          input.value = newMax;
-          input.dispatchEvent(new Event('input'));
-        }
-        var hint = document.querySelector('[data-available-hint="' + eqId + '"]');
-        if (hint) hint.textContent = newMax;
+    });
+  })();
+
+  // Быстрая смена статуса оборудования/кейса одним выбором из списка —
+  // карточки в каталоге и на карточке товара (без отдельной кнопки "Сохранить").
+  document.querySelectorAll('select[data-quick-status]').forEach(function (select) {
+    select.addEventListener('change', function () { select.form.submit(); });
+  });
+
+  // Поиск по названию в каталоге оборудования — мгновенная фильтрация уже
+  // отрисованных карточек на клиенте, без перезагрузки страницы (сочетается
+  // с фильтром по категории, который работает отдельно, через ссылки).
+  (function () {
+    var input = document.querySelector('[data-equipment-search]');
+    var grid = document.querySelector('[data-equipment-grid]');
+    var empty = document.querySelector('[data-equipment-empty]');
+    if (!input || !grid) return;
+    input.addEventListener('input', function () {
+      var query = input.value.trim().toLowerCase();
+      var visibleCount = 0;
+      grid.querySelectorAll('[data-equip-name]').forEach(function (card) {
+        var match = !query || card.getAttribute('data-equip-name').indexOf(query) !== -1;
+        card.style.display = match ? '' : 'none';
+        if (match) visibleCount += 1;
       });
-    }
-    caseCheckboxes.forEach(function (cb) { cb.addEventListener('change', recompute); });
+      if (empty) empty.style.display = visibleCount === 0 ? '' : 'none';
+    });
   })();
 
   // Тултип для простых столбчатых графиков — элементы с [data-chart-tooltip]

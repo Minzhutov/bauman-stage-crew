@@ -6,11 +6,15 @@
     <div>
       <div class="eyebrow">Каталог оборудования</div>
       <h1 style="font-size:32px; text-transform:none; background:none; -webkit-text-fill-color:initial; color:var(--text);">Оборудование</h1>
-      <p>Склад техники: количество, статус, местоположение. «На складе» считается автоматически — минус то, что уже зарезервировано запланированными мероприятиями, напрямую или упаковано в один из кейсов (вкладка «Кейсы»).</p>
+      <p>Склад техники: количество, статус, местоположение. «На складе» считается автоматически — минус то, что реально собрано под мероприятие (отметка «Собрано» на странице мероприятия) и ещё не вернулось. Просто запланированное на будущий комплект (ещё не собранное) на складе не уменьшает — см. список планов ниже у каждой позиции.</p>
     </div>
-    <a href="/equipment/new" class="btn btn-primary">+ Добавить оборудование</a>
+    <% if (auth.isStaff(currentUser)) { %><a href="/equipment/new" class="btn btn-primary">+ Добавить оборудование</a><% } %>
   </div>
   <%- include('../partials/equipment_nav') -%>
+
+  <div class="field" style="max-width:360px; margin-bottom:16px;">
+    <input type="search" id="equipment-search" data-equipment-search placeholder="Поиск по названию…" autocomplete="off">
+  </div>
 
   <div class="btn-group" style="margin-bottom:24px; flex-wrap:wrap;">
     <a href="/equipment" class="btn btn-small <%= categoryFilter === '' ? 'btn-primary' : '' %>">Все</a>
@@ -24,6 +28,7 @@
     <% } %>
   </div>
 
+  <% if (auth.isStaff(currentUser)) { %>
   <details class="panel" style="margin-bottom:24px;">
     <summary style="cursor:pointer; font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-faint);">Управление категориями</summary>
     <div style="margin-top:16px; display:flex; flex-direction:column; gap:10px;">
@@ -45,20 +50,21 @@
       </form>
     </div>
   </details>
+  <% } %>
 
   <% if (!equipment.length) { %>
     <div class="empty"><div class="glyph">📦</div>Каталог пуст.</div>
   <% } else { %>
-    <div class="card-grid">
+    <div class="card-grid" data-equipment-grid>
       <% equipment.forEach(function(eq){ %>
-        <div class="card equip-card">
+        <div class="card equip-card" data-equip-name="<%= eq.name.toLowerCase() %>">
           <div class="equip-card-photo">
             <% if (eq.photoFile) { %><img src="/uploads/equipment/<%= eq.photoFile %>" alt=""><% } else { %>📦<% } %>
-            <span class="badge badge-equip-<%= eq.status %> equip-card-status"><%= domain.EQUIPMENT_STATUS_LABELS[eq.status] %></span>
+            <span class="badge badge-equip-<%= eq.displayStatus %> equip-card-status"><%= domain.EQUIPMENT_STATUS_LABELS[eq.displayStatus] %></span>
           </div>
           <div class="equip-card-body">
             <div>
-              <h3 class="equip-card-title"><%= eq.name %></h3>
+              <h3 class="equip-card-title"><a href="/equipment/<%= eq.id %>" style="color:inherit;"><%= eq.name %></a></h3>
               <span class="badge badge-planned" style="margin-top:6px;"><%= domain.equipmentCategoryLabel(eq.categoryId) %></span>
             </div>
             <div class="meta">
@@ -75,20 +81,36 @@
             <% if (eq.allocations.length) { %>
               <div style="font-size:11.5px; color:var(--text-faint); display:flex; flex-direction:column; gap:3px;">
                 <% eq.allocations.forEach(function(a){ %>
-                  <div>Забронировано: <a href="/events/<%= a.event.id %>"><%= a.event.title %></a><% if (a.via) { %> (кейс «<%= a.via %>»)<% } %> — <%= a.quantity %> шт., <%= h.formatDate(a.event.startsAt) %>–<%= h.formatDate(a.event.endsAt) %></div>
+                  <div>Запланировано: <a href="/events/<%= a.event.id %>"><%= a.event.title %></a><% if (a.via) { %> (кейс «<%= a.via %>»)<% } %> — <%= a.quantity %> шт., <%= h.formatDate(a.event.startsAt) %>–<%= h.formatDate(a.event.endsAt) %> <span class="<%= a.held ? '' : 'text-faint' %>">· <%= a.held ? 'собрано' : 'не собрано' %></span></div>
                 <% }); %>
               </div>
             <% } %>
-            <div class="card-foot">
-              <a href="/equipment/<%= eq.id %>/edit" class="btn btn-small">Редактировать</a>
-              <form action="/equipment/<%= eq.id %>?_method=DELETE" method="POST" data-confirm="Удалить оборудование «<%= eq.name %>» из каталога?">
-                <button type="submit" class="btn btn-small btn-danger" <%= eq.allocatedTotal > 0 ? 'disabled title="Зарезервировано на мероприятии"' : '' %>>Удалить</button>
+            <% if (auth.isStaff(currentUser)) { %>
+              <form action="/equipment/<%= eq.id %>/status?_method=PUT" method="POST" style="display:flex; gap:6px; align-items:center;">
+                <select name="status" data-quick-status style="flex:1; font-size:12px; padding:4px 6px;">
+                  <% domain.EQUIPMENT_STATUS_ORDER.forEach(function(key){ %>
+                    <option value="<%= key %>" <%= eq.status === key ? 'selected' : '' %>><%= domain.EQUIPMENT_STATUS_LABELS[key] %></option>
+                  <% }); %>
+                </select>
+                <noscript><button type="submit" class="btn btn-small">OK</button></noscript>
               </form>
+            <% } %>
+            <div class="card-foot">
+              <span class="btn-group">
+                <a href="/equipment/<%= eq.id %>" class="btn btn-small">Подробнее</a>
+                <% if (auth.isStaff(currentUser)) { %><a href="/equipment/<%= eq.id %>/edit" class="btn btn-small">Редактировать</a><% } %>
+              </span>
+              <% if (auth.isStaff(currentUser)) { %>
+                <form action="/equipment/<%= eq.id %>?_method=DELETE" method="POST" data-confirm="Удалить оборудование «<%= eq.name %>» из каталога?">
+                  <button type="submit" class="btn btn-small btn-danger" <%= eq.allocatedTotal > 0 ? 'disabled title="Зарезервировано на мероприятии"' : '' %>>Удалить</button>
+                </form>
+              <% } %>
             </div>
           </div>
         </div>
       <% }); %>
     </div>
+    <div class="empty" data-equipment-empty style="display:none;"><div class="glyph">🔍</div>Ничего не найдено.</div>
   <% } %>
 </div>
 
